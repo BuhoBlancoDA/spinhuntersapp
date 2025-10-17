@@ -17,22 +17,16 @@ export default function SignInPage() {
     window.location.href = '/dashboard'
   }
 
-  async function signOut() {
-    await fetch('/api/auth/sign-out', { method: 'POST' })
-    window.location.href = '/auth/sign-in'
-  }
-
   return (
-    <main className="min-h-dvh grid place-items-center p-6">
-      <form onSubmit={onSubmit} className="w-full max-w-sm space-y-3">
-        <h1 className="text-2xl font-bold">Iniciar sesión</h1>
-        <input className="w-full border p-2 rounded" name="email" type="email" required placeholder="Email" />
-        <input className="w-full border p-2 rounded" name="password" type="password" required placeholder="Contraseña" />
-        <button disabled={loading} className="w-full px-4 py-2 rounded bg-black text-white">
-          {loading ? 'Entrando...' : 'Entrar'}
+    <main className="min-h-dvh grid place-items-center px-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm glass p-6 space-y-3">
+        <h1 className="text-xl font-semibold">Iniciar sesión</h1>
+        <input className="w-full bg-transparent border border-white/15 focus:border-brand/80 outline-none rounded p-2 text-white placeholder:text-white/40" name="email" type="email" required placeholder="Email" />
+        <input className="w-full bg-transparent border border-white/15 focus:border-brand/80 outline-none rounded p-2 text-white placeholder:text-white/40" name="password" type="password" required placeholder="Contraseña" />
+        <button disabled={loading} className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand/90">
+          {loading ? 'Entrando…' : 'Entrar'}
         </button>
-        {err && <p className="text-red-600 text-sm">{err}</p>}
-        <button type="button" onClick={signOut} className="w-full px-4 py-2 rounded border">Cerrar sesión</button>
+        {err && <p className="text-red-400 text-sm">{err}</p>}
       </form>
     </main>
   )

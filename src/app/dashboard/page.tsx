@@ -9,10 +9,10 @@ export default async function DashboardPage() {
   return (
     <main className="min-h-dvh p-6 max-w-3xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Hola, {user.email}</h1>
-      <div className="p-4 border rounded">
-        <p className="text-sm text-gray-700">Aquí verás tu membresía, recursos y anuncios.</p>
+      <div className="glass p-4">
+        <p className="text-sm text-white/70">Aquí verás tu membresía, recursos y anuncios.</p>
       </div>
-      <a className="inline-block px-4 py-2 rounded bg-black text-white" href="/profile">Completar/editar perfil</a>
+      <a className="inline-block px-4 py-2 rounded bg-brand text-white hover:bg-brand/90" href="/profile">Completar/editar perfil</a>
     </main>
   )
 }

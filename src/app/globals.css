@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variables y fondo oscuro con formas */
+:root {
+  --bg: #0b0d10;
+  --card: #111317;
+  --fg: #e5e7eb;
+  --muted: #9aa0a6;
+  --brand: #d92a2e;
+}
+
+html, body { height: 100%; }
+
+body {
+  background: radial-gradient(1200px 800px at 80% -10%, rgba(217,42,46,0.12), transparent 60%),
+              radial-gradient(800px 600px at -10% 110%, rgba(255,255,255,0.05), transparent 60%),
+              var(--bg);
+  color: var(--fg);
+}
+
+/* Pequeña "tarjeta de vidrio" reutilizable */
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid rgba(255,255,255,0.08);
+  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  box-shadow: var(--shadow-glow, 0 10px 40px rgba(0,0,0,.5));
+}
