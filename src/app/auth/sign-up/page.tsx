@@ -1,59 +1,138 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { z } from 'zod'
+import { COUNTRIES } from '@/lib/countries'
+
+const schema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  confirm: z.string().min(8),
+  full_name: z.string().min(2, 'Nombre requerido'),
+  country_code: z
+    .string()
+    .trim()
+    .length(2, 'Selecciona tu país'),
+  discord_user: z.string().min(2, 'Usuario de Discord requerido'),
+  whatsapp: z.string().optional(),
+  email_alt: z.string().email().optional().or(z.literal('')),
+  how_heard: z.string().optional(),
+  how_heard_other: z.string().optional()
+}).superRefine((d, ctx) => {
+  if (d.how_heard === 'Otros' && !d.how_heard_other?.trim()) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['how_heard_other'], message: 'Cuéntanos cómo nos conociste' })
+  }
+}).refine(d => d.password === d.confirm, { message: 'Las contraseñas no coinciden', path: ['confirm'] })
 
 export default function SignUpPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const [how, setHow] = useState('')
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true); setErr(null); setMsg(null)
-    const form = new FormData(e.currentTarget)
-    const email = String(form.get('email') || '')
-    const password = String(form.get('password') || '')
-    const confirm = String(form.get('confirm') || '')
-
-    if (password.length < 8) { setErr('La contraseña debe tener al menos 8 caracteres'); setLoading(false); return }
-    if (password !== confirm) { setErr('Las contraseñas no coinciden'); setLoading(false); return }
-
-    const res = await fetch('/api/auth/sign-up', { method: 'POST', body: JSON.stringify({ email, password }) })
-    const json = await res.json()
-    if (!res.ok) { 
-      // Translate common Supabase error messages to user-friendly Spanish messages
-      let errorMessage = json.error || 'Error desconocido';
-
-      if (errorMessage.toLowerCase().includes('rate limit')) {
-        errorMessage = 'Se ha alcanzado el límite de intentos, espera unos minutos antes de reintentar.';
-      } else if (errorMessage.includes('User already registered')) {
-        errorMessage = 'Este correo electrónico ya está registrado. Intenta iniciar sesión.';
-      } else if (errorMessage.includes('Invalid email')) {
-        errorMessage = 'El correo electrónico no es válido.';
-      } else if (errorMessage.includes('Password should be')) {
-        errorMessage = 'La contraseña no cumple con los requisitos de seguridad.';
-      }
-
-      setErr(errorMessage); 
-      setLoading(false); 
-      return; 
+    const fd = new FormData(e.currentTarget)
+    const data = {
+      email: String(fd.get('email') || ''),
+      password: String(fd.get('password') || ''),
+      confirm: String(fd.get('confirm') || ''),
+      full_name: String(fd.get('full_name') || ''),
+      country_code: String(fd.get('country_code') || '').trim().toUpperCase(),
+      discord_user: String(fd.get('discord_user') || ''),
+      whatsapp: String(fd.get('whatsapp') || ''),
+      email_alt: String(fd.get('email_alt') || ''),
+      how_heard: String(fd.get('how_heard') || ''),
+      how_heard_other: String(fd.get('how_heard_other') || '')
     }
-    setMsg('Registro creado. Revisa tu correo para confirmar la cuenta.')
+
+    const parsed = schema.safeParse(data)
+    if (!parsed.success) {
+      const m = parsed.error.issues[0]?.message || 'Datos inválidos'
+      setErr(m); setLoading(false); return
+    }
+
+    const res = await fetch('/api/auth/sign-up', { method: 'POST', body: JSON.stringify(parsed.data) })
+    const json = await res.json()
+    if (!res.ok) {
+      let m = json.error || 'Error'
+      if (typeof m === 'string' && m.toLowerCase().includes('rate limit')) {
+        m = 'Se alcanzó el límite de envíos. Espera 1–2 min e inténtalo de nuevo.'
+      }
+      setErr(m); setLoading(false); return
+    }
     setLoading(false)
+    const name = encodeURIComponent(String(fd.get('full_name') || ''))
+    e.currentTarget.reset()
+    router.replace(`/auth/verify?name=${name}`)
   }
 
   return (
-    <main className="min-h-dvh grid place-items-center px-4">
-      <form onSubmit={onSubmit} className="w-full max-w-sm glass p-6 space-y-3">
-        <h1 className="text-xl font-semibold">Crear cuenta</h1>
-        <input className="w-full bg-transparent border border-white/15 focus:border-brand/80 outline-none rounded p-2 text-white placeholder:text-white/40" name="email" type="email" required placeholder="Email" />
-        <input className="w-full bg-transparent border border-white/15 focus:border-brand/80 outline-none rounded p-2 text-white placeholder:text-white/40" name="password" type="password" required placeholder="Contraseña (min 8)" />
-        <input className="w-full bg-transparent border border-white/15 focus:border-brand/80 outline-none rounded p-2 text-white placeholder:text-white/40" name="confirm" type="password" required placeholder="Confirmar contraseña" />
-        <button disabled={loading} className="w-full px-4 py-2 rounded bg-brand text-white hover:bg-brand/90">
-          {loading ? 'Creando…' : 'Registrarme'}
+    <main className="min-h-dvh grid place-items-center p-6 bg-gray-900">
+      <form onSubmit={onSubmit} className="w-full max-w-xl space-y-4 p-8 rounded-lg bg-black border border-red-800 shadow-xl">
+        <h1 className="text-3xl font-bold text-white">Crear cuenta</h1>
+
+        <div className="p-4 rounded border border-red-800 bg-gray-900 text-sm text-gray-300">
+          Para acceder a algunos recursos externos recomendamos <b className="text-red-500">usar un correo Gmail</b>.
+        </div>
+
+        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="full_name" required placeholder="Nombre completo" />
+        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="email" type="email" required placeholder="Email (ideal Gmail)" />
+        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="email_alt" type="email" placeholder="Email alterno (opcional)" />
+        <div className="grid grid-cols-2 gap-4">
+          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="password" type="password" required placeholder="Contraseña (min 8)" />
+          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="confirm" type="password" required placeholder="Confirmar contraseña" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <select
+              className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+              name="country_code"
+              required
+              defaultValue=""
+            >
+              <option value="" disabled>Selecciona tu país</option>
+              {COUNTRIES.map(c => (
+                <option key={c.code} value={c.code}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="discord_user" required placeholder="Usuario de Discord" />
+        </div>
+
+        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="whatsapp" placeholder="WhatsApp (opcional)" />
+
+        <select
+          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+          name="how_heard"
+          value={how}
+          onChange={(e)=>setHow(e.target.value)}
+        >
+          <option value="">¿Cómo nos conociste? (opcional)</option>
+          <option>Youtube</option>
+          <option>Discord</option>
+          <option>Twitch</option>
+          <option>Google</option>
+          <option>Un amigo</option>
+          <option>Otros</option>
+        </select>
+
+        {how === 'Otros' && (
+          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="how_heard_other" placeholder="Cuéntanos cómo nos conociste" />
+        )}
+
+        <div className="text-xs text-gray-400 mt-2">
+          Al registrarte aceptas los términos y condiciones de Spinhunters
+        </div>
+
+        <button disabled={loading} className="w-full px-5 py-3 rounded bg-red-800 text-white hover:bg-red-700 transition-colors">
+          {loading ? 'Creando...' : 'Registrarme'}
         </button>
-        {msg && <p className="text-green-400 text-sm">{msg}</p>}
-        {err && <p className="text-red-400 text-sm">{err}</p>}
-        <p className="text-xs text-white/50">Algunos recursos externos requieren email de Gmail.</p>
+        {msg && <p className="text-green-500 text-sm">{msg}</p>}
+        {err && <p className="text-red-500 text-sm">{err}</p>}
       </form>
     </main>
   )

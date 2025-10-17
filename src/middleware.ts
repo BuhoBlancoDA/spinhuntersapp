@@ -10,5 +10,9 @@ export async function middleware(req: NextRequest) {
   return res
 }
 
-// Si se quisiera limitar, usar matcher (por ahora, aplica global para refrescar cookies)
-// export const config = { matcher: ['/dashboard/:path*', '/profile/:path*'] }
+// Evitar assets/estáticos
+export const config = {
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml).*)',
+  ],
+}
