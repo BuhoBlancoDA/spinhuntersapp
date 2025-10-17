@@ -19,7 +19,24 @@ export default function SignUpPage() {
 
     const res = await fetch('/api/auth/sign-up', { method: 'POST', body: JSON.stringify({ email, password }) })
     const json = await res.json()
-    if (!res.ok) { setErr(json.error || 'Error'); setLoading(false); return }
+    if (!res.ok) { 
+      // Translate common Supabase error messages to user-friendly Spanish messages
+      let errorMessage = json.error || 'Error desconocido';
+
+      if (errorMessage.toLowerCase().includes('rate limit')) {
+        errorMessage = 'Se ha alcanzado el límite de intentos, espera unos minutos antes de reintentar.';
+      } else if (errorMessage.includes('User already registered')) {
+        errorMessage = 'Este correo electrónico ya está registrado. Intenta iniciar sesión.';
+      } else if (errorMessage.includes('Invalid email')) {
+        errorMessage = 'El correo electrónico no es válido.';
+      } else if (errorMessage.includes('Password should be')) {
+        errorMessage = 'La contraseña no cumple con los requisitos de seguridad.';
+      }
+
+      setErr(errorMessage); 
+      setLoading(false); 
+      return; 
+    }
     setMsg('Registro creado. Revisa tu correo para confirmar la cuenta.')
     setLoading(false)
   }
