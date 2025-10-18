@@ -1,7 +1,17 @@
+// src/app/dashboard/page.tsx
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
 import { supabaseServer } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { unstable_noStore as noStore } from 'next/cache'
 
 export default async function DashboardPage() {
+  noStore()
+
   const supabase = supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/sign-in')
@@ -10,9 +20,18 @@ export default async function DashboardPage() {
     <main className="min-h-dvh p-6 max-w-3xl mx-auto space-y-4">
       <h1 className="text-2xl font-bold">Hola, {user.email}</h1>
       <div className="glass p-4">
-        <p className="text-sm text-white/70">Aquí verás tu membresía, recursos y anuncios.</p>
+        <p className="text-sm text-white/70">
+          Aquí verás tu membresía, recursos y anuncios.
+        </p>
       </div>
-      <a className="inline-block px-4 py-2 rounded bg-brand text-white hover:bg-brand/90" href="/profile">Completar/editar perfil</a>
+      <Link
+        href="/profile"
+        prefetch={false}  // ← evita usar prefetch con sesión vieja
+        className="inline-block px-4 py-2 rounded bg-brand text-white hover:bg-brand/90"
+      >
+        Completar/editar perfil
+      </Link>
     </main>
   )
 }
+

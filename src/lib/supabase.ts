@@ -1,23 +1,22 @@
-import { createBrowserClient } from '@supabase/ssr'
+// src/lib/supabase.ts
 import { cookies } from 'next/headers'
+import { NextRequest, NextResponse } from 'next/server'
 import {
   createServerComponentClient,
   createRouteHandlerClient,
-  createMiddlewareClient
+  createMiddlewareClient,
+  createServerActionClient,
 } from '@supabase/auth-helpers-nextjs'
 
-export const supabaseBrowser = () =>
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+// Server Components (RSC / SSR)
+export const supabaseServer = () => createServerComponentClient({ cookies })
 
-export const supabaseServer = () =>
-  createServerComponentClient({ cookies })
+// Route Handlers (app/api/*/route.ts)
+export const supabaseRoute = () => createRouteHandlerClient({ cookies })
 
-export const supabaseRoute = () =>
-  createRouteHandlerClient({ cookies })
-
-// Se usa en middleware para refrescar sesión y setear cookies
-export const supabaseMiddleware = (req: any, res: any) =>
+// Middleware
+export const supabaseMiddleware = (req: NextRequest, res: NextResponse) =>
   createMiddlewareClient({ req, res })
+
+// Server Actions
+export const supabaseAction = () => createServerActionClient({ cookies })

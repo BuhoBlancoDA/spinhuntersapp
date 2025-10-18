@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { COUNTRIES } from '@/lib/countries'
@@ -20,9 +20,16 @@ const schema = z.object({
   how_heard_other: z.string().optional()
 }).superRefine((d, ctx) => {
   if (d.how_heard === 'Otros' && !d.how_heard_other?.trim()) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['how_heard_other'], message: 'Cuéntanos cómo nos conociste' })
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['how_heard_other'],
+      message: 'Cuéntanos cómo nos conociste'
+    })
   }
-}).refine(d => d.password === d.confirm, { message: 'Las contraseñas no coinciden', path: ['confirm'] })
+}).refine(d => d.password === d.confirm, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirm']
+})
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -33,9 +40,17 @@ export default function SignUpPage() {
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setLoading(true); setErr(null); setMsg(null)
-    const fd = new FormData(e.currentTarget)
-    const data = {
+    if (loading) return
+
+    setLoading(true)
+    setErr(null)
+    setMsg(null)
+
+    // --- FIX: guardar referencia al formulario ANTES de cualquier await ---
+    const form = e.currentTarget
+    const fd = new FormData(form)
+
+    const raw = {
       email: String(fd.get('email') || ''),
       password: String(fd.get('password') || ''),
       confirm: String(fd.get('confirm') || ''),
@@ -48,25 +63,44 @@ export default function SignUpPage() {
       how_heard_other: String(fd.get('how_heard_other') || '')
     }
 
-    const parsed = schema.safeParse(data)
+    const parsed = schema.safeParse(raw)
     if (!parsed.success) {
       const m = parsed.error.issues[0]?.message || 'Datos inválidos'
-      setErr(m); setLoading(false); return
+      setErr(m)
+      setLoading(false)
+      return
     }
 
-    const res = await fetch('/api/auth/sign-up', { method: 'POST', body: JSON.stringify(parsed.data) })
-    const json = await res.json()
-    if (!res.ok) {
-      let m = json.error || 'Error'
-      if (typeof m === 'string' && m.toLowerCase().includes('rate limit')) {
-        m = 'Se alcanzó el límite de envíos. Espera 1–2 min e inténtalo de nuevo.'
+    try {
+      const res = await fetch('/api/auth/sign-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }, // <- asegura JSON
+        body: JSON.stringify(parsed.data)
+      })
+
+      const json = await res.json().catch(() => ({} as any))
+
+      if (!res.ok) {
+        let m = json?.error || 'Error'
+        if (typeof m === 'string' && m.toLowerCase().includes('rate limit')) {
+          m = 'Se alcanzó el límite de envíos. Espera 1–2 min e inténtalo de nuevo.'
+        }
+        setErr(m)
+        return
       }
-      setErr(m); setLoading(false); return
+
+      setMsg('¡Revisa tu bandeja para verificar tu cuenta!')
+      // reset con la referencia guardada (evita el null de e.currentTarget)
+      form.reset()
+
+      const name = encodeURIComponent(parsed.data.full_name || '')
+      router.replace(`/auth/verify?name=${name}`)
+    } catch (error) {
+      console.error(error)
+      setErr('Error de red. Intenta nuevamente.')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-    const name = encodeURIComponent(String(fd.get('full_name') || ''))
-    e.currentTarget.reset()
-    router.replace(`/auth/verify?name=${name}`)
   }
 
   return (
@@ -78,12 +112,41 @@ export default function SignUpPage() {
           Para acceder a algunos recursos externos recomendamos <b className="text-red-500">usar un correo Gmail</b>.
         </div>
 
-        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="full_name" required placeholder="Nombre completo" />
-        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="email" type="email" required placeholder="Email (ideal Gmail)" />
-        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="email_alt" type="email" placeholder="Email alterno (opcional)" />
+        <input
+          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+          name="full_name"
+          required
+          placeholder="Nombre completo"
+        />
+        <input
+          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+          name="email"
+          type="email"
+          required
+          placeholder="Email (ideal Gmail)"
+        />
+        <input
+          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+          name="email_alt"
+          type="email"
+          placeholder="Email alterno (opcional)"
+        />
+
         <div className="grid grid-cols-2 gap-4">
-          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="password" type="password" required placeholder="Contraseña (min 8)" />
-          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="confirm" type="password" required placeholder="Confirmar contraseña" />
+          <input
+            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+            name="password"
+            type="password"
+            required
+            placeholder="Contraseña (min 8)"
+          />
+          <input
+            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+            name="confirm"
+            type="password"
+            required
+            placeholder="Confirmar contraseña"
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -100,16 +163,25 @@ export default function SignUpPage() {
               ))}
             </select>
           </div>
-          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="discord_user" required placeholder="Usuario de Discord" />
+          <input
+            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+            name="discord_user"
+            required
+            placeholder="Usuario de Discord"
+          />
         </div>
 
-        <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="whatsapp" placeholder="WhatsApp (opcional)" />
+        <input
+          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+          name="whatsapp"
+          placeholder="WhatsApp (opcional)"
+        />
 
         <select
           className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
           name="how_heard"
           value={how}
-          onChange={(e)=>setHow(e.target.value)}
+          onChange={(e) => setHow(e.target.value)}
         >
           <option value="">¿Cómo nos conociste? (opcional)</option>
           <option>Youtube</option>
@@ -121,19 +193,28 @@ export default function SignUpPage() {
         </select>
 
         {how === 'Otros' && (
-          <input className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none" name="how_heard_other" placeholder="Cuéntanos cómo nos conociste" />
+          <input
+            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
+            name="how_heard_other"
+            placeholder="Cuéntanos cómo nos conociste"
+          />
         )}
 
         <div className="text-xs text-gray-400 mt-2">
           Al registrarte aceptas los términos y condiciones de Spinhunters
         </div>
 
-        <button disabled={loading} className="w-full px-5 py-3 rounded bg-red-800 text-white hover:bg-red-700 transition-colors">
+        <button
+          disabled={loading}
+          className="w-full px-5 py-3 rounded bg-red-800 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+        >
           {loading ? 'Creando...' : 'Registrarme'}
         </button>
+
         {msg && <p className="text-green-500 text-sm">{msg}</p>}
         {err && <p className="text-red-500 text-sm">{err}</p>}
       </form>
     </main>
   )
 }
+
