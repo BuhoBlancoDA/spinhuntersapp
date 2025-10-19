@@ -6,7 +6,6 @@ export const fetchCache = 'force-no-store'
 
 import { supabaseServer } from '@/lib/supabase'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { unstable_noStore as noStore } from 'next/cache'
 
 export default async function DashboardPage() {
@@ -24,13 +23,14 @@ export default async function DashboardPage() {
           Aquí verás tu membresía, recursos y anuncios.
         </p>
       </div>
-      <Link
+
+      {/* ⚠️ Navegación dura */}
+      <a
         href="/profile"
-        prefetch={false}  // ← evita usar prefetch con sesión vieja
         className="inline-block px-4 py-2 rounded bg-brand text-white hover:bg-brand/90"
       >
         Completar/editar perfil
-      </Link>
+      </a>
     </main>
   )
 }

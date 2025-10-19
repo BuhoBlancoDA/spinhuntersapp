@@ -28,3 +28,43 @@ body {
   border-radius: 16px;
   box-shadow: var(--shadow-glow, 0 10px 40px rgba(0,0,0,.5));
 }
+/* === Helpers nuevos === */
+.shadow-glow {
+  box-shadow: 0 10px 40px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.06), 0 8px 24px rgba(225,50,46,.25);
+}
+
+.chip {
+  display: inline-block;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  font-size: 12px;
+  color: rgba(255,255,255,0.8);
+}
+/* Mejora de legibilidad del H1 (sombra suave) */
+.text-glow-sm {
+  text-shadow: 0 1px 2px rgba(0,0,0,.65), 0 8px 30px rgba(0,0,0,.35);
+}
+
+/* Línea HUD animada (liviana) en el borde inferior del hero */
+.hud-divider {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0) 0%,
+    rgba(52,208,255,.85) 20%,
+    rgba(225,50,46,.85) 50%,
+    rgba(52,208,255,.85) 80%,
+    rgba(0,0,0,0) 100%
+  );
+  background-size: 200% 100%;
+  animation: hud-sweep 10s linear infinite;
+  opacity: .7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hud-divider { animation: none; }
+}
+@keyframes hud-sweep {
+  0% { background-position: 0% 0; }
+  100% { background-position: 200% 0; }
+}

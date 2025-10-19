@@ -1,4 +1,5 @@
 // src/components/Header.tsx
+export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
@@ -9,7 +10,7 @@ import SignOutButton from '@/components/SignOutButton'
 import { unstable_noStore as noStore } from 'next/cache'
 
 export default async function Header() {
-  noStore() // ← evita cache del Router en este layout fragment
+  noStore()
 
   const supabase = supabaseServer()
   const { data: { user } } = await supabase.auth.getUser()
@@ -34,30 +35,30 @@ export default async function Header() {
         <nav className="hidden sm:flex items-center gap-3">
           {user ? (
             <>
-              <Link
+              {/* ⚠️ Usamos <a> para navegación dura */}
+              <a
                 href="/dashboard"
-                prefetch={false} // ← clave
                 className="px-3 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700"
               >
                 Mi cuenta
-              </Link>
+              </a>
               <SignOutButton />
             </>
           ) : (
             <>
-              <Link
-                href="/auth/sign-in"
-                prefetch={false}
-                className="px-3 py-2 text-sm rounded border border-white/10 hover:border-white/20"
-              >
-                Iniciar sesión
-              </Link>
               <Link
                 href="/auth/sign-up"
                 prefetch={false}
                 className="px-3 py-2 text-sm rounded bg-brand hover:bg-brand/90 text-white"
               >
                 Crear cuenta
+              </Link>
+              <Link
+                href="/auth/sign-in"
+                prefetch={false}
+                className="px-3 py-2 text-sm rounded border border-white/10 hover:border-white/20"
+              >
+                Iniciar sesión
               </Link>
             </>
           )}
@@ -67,3 +68,4 @@ export default async function Header() {
     </header>
   )
 }
+

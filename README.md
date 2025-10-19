@@ -31,7 +31,7 @@ spinhunters-app/
 │   │   └── page.tsx          # Página principal
 │   ├── lib/
 │   │   └── supabase.ts       # Cliente de Supabase
-│   └── middleware.ts         # Middleware para sesiones
+│   └── middleware.txt         # Middleware para sesiones
 ├── .env.example              # Variables de entorno de ejemplo
 ├── package.json              # Dependencias y scripts
 └── README.md                 # Esta documentación
