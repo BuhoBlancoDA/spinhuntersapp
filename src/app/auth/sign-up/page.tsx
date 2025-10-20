@@ -9,10 +9,7 @@ const schema = z.object({
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   confirm: z.string().min(8),
   full_name: z.string().min(2, 'Nombre requerido'),
-  country_code: z
-    .string()
-    .trim()
-    .length(2, 'Selecciona tu país'),
+  country_code: z.string().trim().length(2, 'Selecciona tu país'),
   discord_user: z.string().min(2, 'Usuario de Discord requerido'),
   whatsapp: z.string().optional(),
   email_alt: z.string().email().optional().or(z.literal('')),
@@ -74,7 +71,7 @@ export default function SignUpPage() {
     try {
       const res = await fetch('/api/auth/sign-up', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }, // <- asegura JSON
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(parsed.data)
       })
 
@@ -90,9 +87,7 @@ export default function SignUpPage() {
       }
 
       setMsg('¡Revisa tu bandeja para verificar tu cuenta!')
-      // reset con la referencia guardada (evita el null de e.currentTarget)
       form.reset()
-
       const name = encodeURIComponent(parsed.data.full_name || '')
       router.replace(`/auth/verify?name=${name}`)
     } catch (error) {
@@ -211,10 +206,23 @@ export default function SignUpPage() {
           {loading ? 'Creando...' : 'Registrarme'}
         </button>
 
+        {/* Separador */}
+        <div className="flex items-center gap-3 text-xs text-white/50">
+          <div className="h-px flex-1 bg-white/10" />
+          o
+          <div className="h-px flex-1 bg-white/10" />
+        </div>
+
+        <a
+          href="/api/auth/oauth?provider=google"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-5 py-3 hover:border-white/25"
+        >
+          Continuar con Google
+        </a>
+
         {msg && <p className="text-green-500 text-sm">{msg}</p>}
         {err && <p className="text-red-500 text-sm">{err}</p>}
       </form>
     </main>
   )
 }
-
