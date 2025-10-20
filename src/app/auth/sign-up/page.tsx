@@ -1,8 +1,10 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { z } from 'zod'
 import { COUNTRIES } from '@/lib/countries'
+import GoogleButton from '@/components/GoogleButton'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -43,7 +45,6 @@ export default function SignUpPage() {
     setErr(null)
     setMsg(null)
 
-    // --- FIX: guardar referencia al formulario ANTES de cualquier await ---
     const form = e.currentTarget
     const fd = new FormData(form)
 
@@ -99,130 +100,178 @@ export default function SignUpPage() {
   }
 
   return (
-    <main className="min-h-dvh grid place-items-center p-6 bg-gray-900">
-      <form onSubmit={onSubmit} className="w-full max-w-xl space-y-4 p-8 rounded-lg bg-black border border-red-800 shadow-xl">
-        <h1 className="text-3xl font-bold text-white">Crear cuenta</h1>
-
-        <div className="p-4 rounded border border-red-800 bg-gray-900 text-sm text-gray-300">
-          Para acceder a algunos recursos externos recomendamos <b className="text-red-500">usar un correo Gmail</b>.
-        </div>
-
-        <input
-          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-          name="full_name"
-          required
-          placeholder="Nombre completo"
+    <main className="relative min-h-dvh overflow-hidden">
+      {/* Fondo con tus hero + overlay */}
+      <div className="absolute inset-0 -z-10">
+        <Image
+          src="/Hero/hero-mobile.webp"
+          alt=""
+          fill
+          className="object-cover md:hidden"
+          priority
         />
-        <input
-          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-          name="email"
-          type="email"
-          required
-          placeholder="Email (ideal Gmail)"
+        <Image
+          src="/Hero/hero-desktop.webp"
+          alt=""
+          fill
+          className="hidden md:block object-cover"
+          priority
         />
-        <input
-          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-          name="email_alt"
-          type="email"
-          placeholder="Email alterno (opcional)"
-        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90" />
+      </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <input
-            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-            name="password"
-            type="password"
-            required
-            placeholder="Contraseña (min 8)"
-          />
-          <input
-            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-            name="confirm"
-            type="password"
-            required
-            placeholder="Confirmar contraseña"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <select
-              className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-              name="country_code"
-              required
-              defaultValue=""
-            >
-              <option value="" disabled>Selecciona tu país</option>
-              {COUNTRIES.map(c => (
-                <option key={c.code} value={c.code}>{c.name}</option>
-              ))}
-            </select>
+      {/* Contenedor 1 columna */}
+      <div className="relative z-10 mx-auto w-full max-w-xl px-4 py-10 md:py-14">
+        {/* Encabezado compacto */}
+        <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-md p-6 sm:p-8 mb-6">
+          <div className="flex items-center gap-3">
+            <Image
+              src="/brand/logo-circle.png"
+              alt="SpinHunters"
+              width={36}
+              height={36}
+              className="rounded-full"
+              priority
+            />
+            <p className="text-sm text-white/70">SpinHunters App</p>
           </div>
+
+          <h1 className="mt-4 text-3xl font-extrabold leading-tight">
+            Crear cuenta
+          </h1>
+          <p className="mt-1 text-white/85">
+            Aprende conmigo (BuhoBlancoDA) y <b>progresemos juntos</b>.
+          </p>
+          <p className="mt-2 text-xs text-white/60">
+            Registro gratis en 30s. Sin compromiso.
+          </p>
+
+          {/* Animación ligera */}
+          <div aria-hidden className="mt-4 hud-divider" />
+        </div>
+
+        {/* === FORMULARIO (misma estructura y names) === */}
+        <form
+          onSubmit={onSubmit}
+          className="w-full rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 p-6 sm:p-8 shadow-2xl space-y-4"
+        >
+          <div className="p-4 rounded-lg border border-white/10 bg-white/5 text-sm text-white/80">
+            Para acceder a algunos recursos externos recomendamos{' '}
+            <b className="text-brand">usar un correo Gmail</b>.
+          </div>
+
           <input
-            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-            name="discord_user"
+            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="full_name"
             required
-            placeholder="Usuario de Discord"
+            placeholder="Nombre completo"
           />
-        </div>
-
-        <input
-          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-          name="whatsapp"
-          placeholder="WhatsApp (opcional)"
-        />
-
-        <select
-          className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-          name="how_heard"
-          value={how}
-          onChange={(e) => setHow(e.target.value)}
-        >
-          <option value="">¿Cómo nos conociste? (opcional)</option>
-          <option>Youtube</option>
-          <option>Discord</option>
-          <option>Twitch</option>
-          <option>Google</option>
-          <option>Un amigo</option>
-          <option>Otros</option>
-        </select>
-
-        {how === 'Otros' && (
           <input
-            className="w-full border border-gray-700 p-3 rounded bg-gray-800 text-white placeholder-gray-400 focus:border-red-500 focus:outline-none"
-            name="how_heard_other"
-            placeholder="Cuéntanos cómo nos conociste"
+            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="email"
+            type="email"
+            required
+            placeholder="Email (ideal Gmail)"
           />
-        )}
+          <input
+            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="email_alt"
+            type="email"
+            placeholder="Email alterno (opcional)"
+          />
 
-        <div className="text-xs text-gray-400 mt-2">
-          Al registrarte aceptas los términos y condiciones de Spinhunters
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <input
+              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+              name="password"
+              type="password"
+              required
+              placeholder="Contraseña (min 8)"
+            />
+            <input
+              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+              name="confirm"
+              type="password"
+              required
+              placeholder="Confirmar contraseña"
+            />
+          </div>
 
-        <button
-          disabled={loading}
-          className="w-full px-5 py-3 rounded bg-red-800 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
-        >
-          {loading ? 'Creando...' : 'Registrarme'}
-        </button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <select
+                className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+                name="country_code"
+                required
+                defaultValue=""
+              >
+                <option value="" disabled>Selecciona tu país</option>
+                {COUNTRIES.map(c => (
+                  <option key={c.code} value={c.code}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <input
+              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+              name="discord_user"
+              required
+              placeholder="Usuario de Discord"
+            />
+          </div>
 
-        {/* Separador */}
-        <div className="flex items-center gap-3 text-xs text-white/50">
-          <div className="h-px flex-1 bg-white/10" />
-          o
-          <div className="h-px flex-1 bg-white/10" />
-        </div>
+          <input
+            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="whatsapp"
+            placeholder="WhatsApp (opcional)"
+          />
 
-        <a
-          href="/api/auth/oauth?provider=google"
-          className="w-full inline-flex items-center justify-center gap-2 rounded-md border border-white/15 px-5 py-3 hover:border-white/25"
-        >
-          Continuar con Google
-        </a>
+          <select
+            className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="how_heard"
+            value={how}
+            onChange={(e) => setHow(e.target.value)}
+          >
+            <option value="">¿Cómo nos conociste? (opcional)</option>
+            <option>Youtube</option>
+            <option>Discord</option>
+            <option>Twitch</option>
+            <option>Google</option>
+            <option>Un amigo</option>
+            <option>Otros</option>
+          </select>
 
-        {msg && <p className="text-green-500 text-sm">{msg}</p>}
-        {err && <p className="text-red-500 text-sm">{err}</p>}
-      </form>
+          {how === 'Otros' && (
+            <input
+              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+              name="how_heard_other"
+              placeholder="Cuéntanos cómo nos conociste"
+            />
+          )}
+
+          <div className="text-xs text-white/60 mt-2">
+            Al registrarte aceptas los términos y condiciones de Spinhunters
+          </div>
+
+          <button
+            disabled={loading}
+            className="w-full px-5 py-3 rounded bg-brand text-white hover:bg-brand/90 transition-colors disabled:opacity-60 shadow-glow"
+          >
+            {loading ? 'Creando...' : 'Registrarme'}
+          </button>
+
+          {/* Separador */}
+          <div className="flex items-center gap-3 text-xs text-white/50">
+            <div className="h-px flex-1 bg-white/10" />
+            o
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <GoogleButton href="/api/auth/oauth?provider=google" label="Crear cuenta con Google" />
+
+          {msg && <p className="text-green-500 text-sm">{msg}</p>}
+          {err && <p className="text-red-500 text-sm">{err}</p>}
+        </form>
+      </div>
     </main>
   )
 }

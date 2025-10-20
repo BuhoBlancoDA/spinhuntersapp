@@ -68,3 +68,18 @@ body {
   0% { background-position: 0% 0; }
   100% { background-position: 200% 0; }
 }
+/* Forzar controles nativos a dark theme donde el navegador lo soporte */
+.dark-select {
+  color-scheme: dark;
+}
+
+/* Salvaguarda para motores que respetan estilos en <option> */
+.dark-select option {
+  background-color: #0E131A; /* fondo oscuro consistente con la app */
+  color: #E6EDF3;            /* texto claro */
+}
+
+/* (opcional) elimina flecha nativa si quieres un look aún más limpio
+   .dark-select { appearance: none; background-image: none; }
+   y puedes dejar la flecha del sistema, que suele verse bien en dark.
+*/
