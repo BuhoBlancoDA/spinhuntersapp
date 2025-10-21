@@ -1,4 +1,4 @@
-import { supabaseServer } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 
 export default async function AdminUserEdit({ params }: { params: { id: string } }) {

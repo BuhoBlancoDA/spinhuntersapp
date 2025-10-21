@@ -1,4 +1,4 @@
-import { supabaseServer } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 
 function AutoRedirect({ to }: { to: string }) {
   // Componente cliente para redirigir después de un segundo

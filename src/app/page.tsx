@@ -6,7 +6,7 @@ export const fetchCache = 'force-no-store'
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabaseServer } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import { unstable_noStore as noStore } from 'next/cache'
 
 export default async function Home() {

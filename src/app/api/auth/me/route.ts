@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
 import { cookies as nextCookies } from 'next/headers'
-import { supabaseRoute } from '@/lib/supabase'
+import { supabaseRoute } from '@/lib/supabase-server'
 
 export async function GET() {
   try {

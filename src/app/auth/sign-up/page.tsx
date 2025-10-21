@@ -13,6 +13,9 @@ const schema = z.object({
   full_name: z.string().min(2, 'Nombre requerido'),
   country_code: z.string().trim().length(2, 'Selecciona tu país'),
   discord_user: z.string().min(2, 'Usuario de Discord requerido'),
+  username: z.string()
+    .trim()
+    .regex(/^[A-Za-z0-9_]{3,20}$/, 'Username: 3-20 caracteres (a-z, A-Z, 0-9, _)'),
   whatsapp: z.string().optional(),
   email_alt: z.string().email().optional().or(z.literal('')),
   how_heard: z.string().optional(),
@@ -55,6 +58,7 @@ export default function SignUpPage() {
       full_name: String(fd.get('full_name') || ''),
       country_code: String(fd.get('country_code') || '').trim().toUpperCase(),
       discord_user: String(fd.get('discord_user') || ''),
+      username: String(fd.get('username') || '').trim(), // <-- sin toLowerCase aquí
       whatsapp: String(fd.get('whatsapp') || ''),
       email_alt: String(fd.get('email_alt') || ''),
       how_heard: String(fd.get('how_heard') || ''),
@@ -101,169 +105,82 @@ export default function SignUpPage() {
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
-      {/* Fondo con tus hero + overlay */}
+      {/* Fondo */}
       <div className="absolute inset-0 -z-10">
-        <Image
-          src="/Hero/hero-mobile.webp"
-          alt=""
-          fill
-          className="object-cover md:hidden"
-          priority
-        />
-        <Image
-          src="/Hero/hero-desktop.webp"
-          alt=""
-          fill
-          className="hidden md:block object-cover"
-          priority
-        />
+        <Image src="/Hero/hero-mobile.webp" alt="" fill className="object-cover md:hidden" priority />
+        <Image src="/Hero/hero-desktop.webp" alt="" fill className="hidden md:block object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90" />
       </div>
 
-      {/* Contenedor 1 columna */}
       <div className="relative z-10 mx-auto w-full max-w-xl px-4 py-10 md:py-14">
-        {/* Encabezado compacto */}
         <div className="rounded-2xl border border-white/10 bg-black/50 backdrop-blur-md p-6 sm:p-8 mb-6">
           <div className="flex items-center gap-3">
-            <Image
-              src="/brand/logo-circle.png"
-              alt="SpinHunters"
-              width={36}
-              height={36}
-              className="rounded-full"
-              priority
-            />
+            <Image src="/brand/logo-circle.png" alt="SpinHunters" width={36} height={36} className="rounded-full" priority />
             <p className="text-sm text-white/70">SpinHunters App</p>
           </div>
-
-          <h1 className="mt-4 text-3xl font-extrabold leading-tight">
-            Crear cuenta
-          </h1>
-          <p className="mt-1 text-white/85">
-            Aprende conmigo (BuhoBlancoDA) y <b>progresemos juntos</b>.
-          </p>
-          <p className="mt-2 text-xs text-white/60">
-            Registro gratis en 30s. Sin compromiso.
-          </p>
-
-          {/* Animación ligera */}
+          <h1 className="mt-4 text-3xl font-extrabold leading-tight">Crear cuenta</h1>
+          <p className="mt-1 text-white/85">Aprende conmigo (BuhoBlancoDA) y <b>progresemos juntos</b>.</p>
+          <p className="mt-2 text-xs text-white/60">Registro gratis en 30s. Sin compromiso.</p>
           <div aria-hidden className="mt-4 hud-divider" />
         </div>
 
-        {/* === FORMULARIO (misma estructura y names) === */}
-        <form
-          onSubmit={onSubmit}
-          className="w-full rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 p-6 sm:p-8 shadow-2xl space-y-4"
-        >
+        <form onSubmit={onSubmit} className="w-full rounded-2xl bg-black/70 backdrop-blur-md border border-white/10 p-6 sm:p-8 shadow-2xl space-y-4">
           <div className="p-4 rounded-lg border border-white/10 bg-white/5 text-sm text-white/80">
-            Para acceder a algunos recursos externos recomendamos{' '}
-            <b className="text-brand">usar un correo Gmail</b>.
+            Para acceder a algunos recursos externos recomendamos <b className="text-brand">usar un correo Gmail</b>.
           </div>
 
+          {/* Username */}
           <input
-            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-            name="full_name"
+            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
+            name="username"
             required
-            placeholder="Nombre completo"
-          />
-          <input
-            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-            name="email"
-            type="email"
-            required
-            placeholder="Email (ideal Gmail)"
-          />
-          <input
-            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-            name="email_alt"
-            type="email"
-            placeholder="Email alterno (opcional)"
+            placeholder="Username (a-z, A-Z, 0-9, _)"
+            pattern="^[A-Za-z0-9_]{3,20}$"
+            title="3-20 caracteres: a-z, A-Z, 0-9 y _"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
           />
 
+          <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="full_name" required placeholder="Nombre completo" />
+          <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="email" type="email" required placeholder="Email (ideal Gmail)" />
+          <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="email_alt" type="email" placeholder="Email alterno (opcional)" />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-              name="password"
-              type="password"
-              required
-              placeholder="Contraseña (min 8)"
-            />
-            <input
-              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-              name="confirm"
-              type="password"
-              required
-              placeholder="Confirmar contraseña"
-            />
+            <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="password" type="password" required placeholder="Contraseña (min 8)" />
+            <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="confirm" type="password" required placeholder="Confirmar contraseña" />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <select
-                className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-                name="country_code"
-                required
-                defaultValue=""
-              >
+              <select className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="country_code" required defaultValue="">
                 <option value="" disabled>Selecciona tu país</option>
-                {COUNTRIES.map(c => (
-                  <option key={c.code} value={c.code}>{c.name}</option>
-                ))}
+                {COUNTRIES.map(c => (<option key={c.code} value={c.code}>{c.name}</option>))}
               </select>
             </div>
-            <input
-              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-              name="discord_user"
-              required
-              placeholder="Usuario de Discord"
-            />
+            <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="discord_user" required placeholder="Usuario de Discord" />
           </div>
 
-          <input
-            className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-            name="whatsapp"
-            placeholder="WhatsApp (opcional)"
-          />
+          <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="whatsapp" placeholder="WhatsApp (opcional)" />
 
-          <select
-            className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-            name="how_heard"
-            value={how}
-            onChange={(e) => setHow(e.target.value)}
-          >
+          <select className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="how_heard" value={how} onChange={(e) => setHow(e.target.value)}>
             <option value="">¿Cómo nos conociste? (opcional)</option>
-            <option>Youtube</option>
-            <option>Discord</option>
-            <option>Twitch</option>
-            <option>Google</option>
-            <option>Un amigo</option>
-            <option>Otros</option>
+            <option>Youtube</option><option>Discord</option><option>Twitch</option>
+            <option>Google</option><option>Un amigo</option><option>Otros</option>
           </select>
 
           {how === 'Otros' && (
-            <input
-              className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/40 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition"
-              name="how_heard_other"
-              placeholder="Cuéntanos cómo nos conociste"
-            />
+            <input className="w-full border border-white/10 p-3 rounded bg-white/5 text-white placeholder-white/50 focus:border-brand focus:ring-2 focus:ring-brand/30 outline-none transition" name="how_heard_other" placeholder="Cuéntanos cómo nos conociste" />
           )}
 
-          <div className="text-xs text-white/60 mt-2">
-            Al registrarte aceptas los términos y condiciones de Spinhunters
-          </div>
+          <div className="text-xs text-white/60 mt-2">Al registrarte aceptas los términos y condiciones de Spinhunters</div>
 
-          <button
-            disabled={loading}
-            className="w-full px-5 py-3 rounded bg-brand text-white hover:bg-brand/90 transition-colors disabled:opacity-60 shadow-glow"
-          >
+          <button disabled={loading} className="w-full px-5 py-3 rounded bg-brand text-white hover:bg-brand/90 transition-colors disabled:opacity-60 shadow-glow">
             {loading ? 'Creando...' : 'Registrarme'}
           </button>
 
-          {/* Separador */}
           <div className="flex items-center gap-3 text-xs text-white/50">
-            <div className="h-px flex-1 bg-white/10" />
-            o
-            <div className="h-px flex-1 bg-white/10" />
+            <div className="h-px flex-1 bg-white/10" />o<div className="h-px flex-1 bg-white/10" />
           </div>
 
           <GoogleButton href="/api/auth/oauth?provider=google" label="Crear cuenta con Google" />

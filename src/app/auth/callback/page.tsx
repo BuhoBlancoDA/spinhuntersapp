@@ -1,23 +1,27 @@
-import { supabaseServer } from '@/lib/supabase'
+// src/app/auth/callback/page.tsx
+import { supabaseServer } from '@/lib/supabase-server'
 import Link from 'next/link'
 
 export default async function CallbackPage() {
-  // Nota: en confirmación de email, Supabase no crea sesión automáticamente.
-  // Esta página solo confirma visualmente el éxito y guía al login.
   const supabase = supabaseServer()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Lectura de sesión robusta (no rompe si hay tokens inválidos)
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any))
 
   return (
-    <main className="min-h-dvh grid place-items-center p-6">
-      <div className="max-w-md w-full text-center space-y-3">
-        <h1 className="text-2xl font-bold">Correo verificado ✅</h1>
-        {user
-          ? <p className="text-gray-600">Tu correo fue verificado y ya tienes sesión activa.</p>
-          : <p className="text-gray-600">Tu correo fue verificado. Ahora inicia sesión para continuar.</p>
-        }
-        <Link href="/auth/sign-in" className="inline-block px-4 py-2 rounded bg-black text-white">
-          Ir a iniciar sesión
-        </Link>
+    <main className="mx-auto max-w-md p-6 space-y-4">
+      <h1 className="text-2xl font-bold">Revisa tu correo</h1>
+      <p className="text-white/70">
+        Te enviamos un enlace de verificación. Ábrelo para completar el inicio de sesión.
+      </p>
+
+      {user && (
+        <p className="text-sm text-green-500">
+          Sesión detectada para <b>{user.email}</b>
+        </p>
+      )}
+
+      <div className="pt-2">
+        <Link href="/" className="underline text-brand">Volver al inicio</Link>
       </div>
     </main>
   )

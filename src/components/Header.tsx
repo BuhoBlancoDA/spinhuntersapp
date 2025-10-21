@@ -5,7 +5,7 @@ export const revalidate = 0
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { supabaseServer } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 import SignOutButton from '@/components/SignOutButton'
 import { unstable_noStore as noStore } from 'next/cache'
 

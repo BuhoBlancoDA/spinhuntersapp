@@ -3,7 +3,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseRoute } from '@/lib/supabase'
+import { supabaseRoute } from '@/lib/supabase-server'
 
 export async function POST(req: NextRequest) {
   // ⬇️ en App Route Handler usa un Response “vacío”, NO next()

@@ -2,36 +2,31 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { supabaseAction } from '@/lib/supabase'
+import { supabaseServer } from '@/lib/supabase-server'
 
 export async function updateProfile(formData: FormData) {
-  const supabase = supabaseAction()
-
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = supabaseServer()
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any))
   if (!user) return { ok: false, error: 'NOT_AUTH' }
 
-  const full_name = String(formData.get('full_name') ?? '').slice(0, 120)
-  const country = String(formData.get('country') ?? '').slice(0, 2).toUpperCase()
-
-  // 1) Intento con user_id
-  let { error } = await supabase
-    .from('profiles')
-    .update({ full_name, country })
-    .eq('user_id', user.id)
-
-  if (error) {
-    // 2) Fallback con id (por si la columna es 'id' en tu esquema)
-    const { error: err2 } = await supabase
-      .from('profiles')
-      .update({ full_name, country })
-      .eq('id', user.id)
-
-    if (err2) {
-      return { ok: false, error: err2.message }
-    }
+  const payload: Record<string, any> = {}
+  if (formData.has('discord_user')) {
+    payload.discord_user = String(formData.get('discord_user') ?? '').slice(0, 120)
+  }
+  if (formData.has('whatsapp')) {
+    payload.whatsapp = String(formData.get('whatsapp') ?? '').slice(0, 40)
   }
 
-  // Revalida vistas relacionadas
+  if (Object.keys(payload).length === 0) {
+    return { ok: false, error: 'EMPTY' }
+  }
+
+  const { error } = await supabase
+    .from('profiles')
+    .upsert({ user_id: user.id, ...payload }, { onConflict: 'user_id' })
+
+  if (error) return { ok: false, error: error.message }
+
   revalidatePath('/profile')
   revalidatePath('/dashboard')
   return { ok: true }
