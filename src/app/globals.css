@@ -79,7 +79,105 @@ body {
   color: #E6EDF3;            /* texto claro */
 }
 
-/* (opcional) elimina flecha nativa si quieres un look aún más limpio
-   .dark-select { appearance: none; background-image: none; }
-   y puedes dejar la flecha del sistema, que suele verse bien en dark.
-*/
+/* ===== Modo oscuro consistente para campos ===== */
+.dark-input {
+  background-color: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #E6EDF3;
+}
+.dark-input::placeholder { color: rgba(230,237,243,0.45); }
+.dark-input:focus {
+  border-color: var(--brand, #E1322E);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(225,50,46,0.30);
+}
+
+/* Select nativo en dark */
+.dark-select {
+  color-scheme: dark;
+  background-color: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.10);
+  color: #E6EDF3;
+}
+.dark-select:focus {
+  border-color: var(--brand, #E1322E);
+  box-shadow: 0 0 0 2px rgba(225,50,46,0.30);
+}
+/* opciones del select (donde el motor lo permite) */
+.dark-select option {
+  background-color: #0E131A;
+  color: #E6EDF3;
+}
+
+/* Date picker icono claro en dark webkit */
+input[type="date"].dark-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: .8;
+}
+
+/* Dropdown de búsqueda (resultados) */
+.dark-dropdown {
+  background-color: #0B0F14;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+}
+
+/* Scrollbar discreto dentro de dropdown (webkit) */
+.dark-scroll::-webkit-scrollbar { width: 8px; }
+.dark-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px;
+}
+.dark-scroll::-webkit-scrollbar-track { background: transparent; }
+
+/* Checkbox acento brand (por si Tailwind no tiene accent-brand) */
+input[type="checkbox"].accent-brand { accent-color: #E1322E; }
+
+/* === DatePicker oscuro (custom) === */
+.datepicker-popover {
+  background: #0B0F14;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 16px 50px rgba(0,0,0,.55);
+}
+.datepicker-popover .nav-btn {
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+}
+.datepicker-popover .nav-btn:hover {
+  background: rgba(255,255,255,0.12);
+}
+.datepicker-popover .day-btn {
+  height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+  border: 1px solid transparent;
+  color: #E6EDF3;
+  background: rgba(255,255,255,0.04);
+}
+.datepicker-popover .day-btn:hover {
+  background: rgba(255,255,255,0.10);
+}
+.datepicker-popover .day-btn.out {
+  color: rgba(230,237,243,0.45);
+  background: rgba(255,255,255,0.03);
+}
+.datepicker-popover .day-btn.today {
+  border-color: rgba(52,208,255,.65);
+  box-shadow: inset 0 0 0 1px rgba(52,208,255,.35);
+}
+.datepicker-popover .day-btn.selected {
+  background: #E1322E;
+  color: white;
+}
+.datepicker-popover .link-btn {
+  color: rgba(230,237,243,0.8);
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.06);
+}
+.datepicker-popover .link-btn:hover {
+  background: rgba(255,255,255,0.12);
+}

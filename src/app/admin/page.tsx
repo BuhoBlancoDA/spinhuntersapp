@@ -1,6 +1,7 @@
 import { supabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default async function AdminPage() {
   const supabase = supabaseServer()
@@ -11,19 +12,58 @@ export default async function AdminPage() {
   if (!isAdmin) redirect('/')
 
   return (
-    <main className="min-h-dvh p-6 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Panel de administración</h1>
-        <Link className="px-3 py-1.5 rounded bg-brand text-white hover:bg-brand/90" href="/admin/users">
-          Usuarios
-        </Link>
+    <main className="relative min-h-dvh overflow-hidden">
+      {/* Fondo hero + overlay */}
+      <div className="absolute inset-0 -z-10">
+        <Image src="/Hero/hero-mobile.webp" alt="" fill className="object-cover md:hidden" priority />
+        <Image src="/Hero/hero-desktop.webp" alt="" fill className="hidden md:block object-cover" priority />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90" />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-black/50 p-4">
-        <h2 className="text-lg font-semibold mb-1">Usuarios</h2>
-        <p className="text-sm text-white/70">
-          Editar, modificar o buscar información de los miembros.
-        </p>
+      <div className="relative z-10 max-w-5xl mx-auto px-4 py-10 md:py-14 space-y-6">
+        {/* Header */}
+        <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
+          <div className="flex items-center gap-3">
+            <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/80">Admin</span>
+            <h1 className="text-2xl font-bold">Panel de administración</h1>
+          </div>
+          <div aria-hidden className="mt-6 hud-divider" />
+        </section>
+
+        {/* Grid de módulos */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Usuarios */}
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">Usuarios</h2>
+              <p className="mt-1 text-sm text-white/70">Editar, modificar o buscar información de los miembros.</p>
+            </div>
+            <div className="mt-4">
+              <Link href="/admin/users" prefetch={false} className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand/90 shadow-glow">
+                Gestionar usuarios
+              </Link>
+            </div>
+          </div>
+
+          {/* Membresías — reemplaza la tarjeta de “Reportes” */}
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">Membresías</h2>
+              <p className="mt-1 text-sm text-white/70">Gestión y control de miembros activos.</p>
+            </div>
+            <div className="mt-4">
+              <Link href="/admin/memberships" prefetch={false} className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand/90 shadow-glow">
+                Gestionar membresías
+              </Link>
+            </div>
+          </div>
+
+          {/* Placeholder futuro */}
+          <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 sm:p-6 opacity-70">
+            <h2 className="text-lg font-semibold">Contenido (próximamente)</h2>
+            <p className="mt-1 text-sm text-white/60">Gestión de cursos y lecciones.</p>
+          </div>
+        </section>
       </div>
     </main>
   )
