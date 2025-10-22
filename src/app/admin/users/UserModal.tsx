@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { COUNTRIES } from '@/lib/countries'
 
 type Details = {
@@ -21,6 +22,7 @@ type Details = {
 }
 
 export default function UserModal({ userId, onClose }: { userId: string, onClose: () => void }) {
+  const [mounted, setMounted] = useState(false)      // ← para portal SSR-safe
   const [recoveryLink, setRecoveryLink] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -28,10 +30,13 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
   const [err, setErr] = useState<string | null>(null)
   const [d, setD] = useState<Details | null>(null)
   const [showSetPass, setShowSetPass] = useState(false)
+
   const countryName = useMemo(
     () => (code?: string | null) => code ? (COUNTRIES.find(c => c.code === code)?.name ?? code) : '',
     []
   )
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     let abort = false
@@ -48,6 +53,19 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
     })()
     return () => { abort = true }
   }, [userId])
+
+  // Bloquear scroll de fondo + cerrar con ESC (solo mientras el modal está montado)
+  useEffect(() => {
+    if (!mounted) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prev
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [mounted, onClose])
 
   async function onSave(e: React.FormEvent) {
     e.preventDefault()
@@ -100,8 +118,6 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
     }
   }
 
-
-
   async function onSetPassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     const fd = new FormData(e.currentTarget)
@@ -126,10 +142,16 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-50">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="absolute inset-x-0 top-10 mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-black/80 p-5 backdrop-blur-md">
+  if (!mounted) return null
+
+  // === PORTAL: renderizamos el modal directamente en <body> ===
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-start justify-center p-4 sm:p-6">
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative w-full max-w-3xl rounded-2xl border border-white/10 bg-black/80 p-5 sm:p-6 backdrop-blur-md shadow-2xl max-h-[85vh] overflow-y-auto">
         {loading && <p className="text-white/70">Cargando…</p>}
         {!loading && d && (
           <>
@@ -140,8 +162,15 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
                   Creado: {d.auth_created_at ? new Date(d.auth_created_at).toLocaleString() : '—'}
                 </p>
               </div>
-              <button onClick={onClose} className="px-3 py-1.5 rounded border border-white/20 text-white/80 hover:bg-white/5">Cerrar</button>
+              <button
+                onClick={onClose}
+                className="px-3 py-1.5 rounded-lg border border-white/20 bg-white/5 text-white/90 hover:bg-white/10"
+              >
+                Cerrar
+              </button>
             </div>
+
+            <div aria-hidden className="mt-4 hud-divider" />
 
             <form onSubmit={onSave} className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="sm:col-span-1">
@@ -166,7 +195,7 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
                 <select
                   value={d.country_code ?? ''}
                   onChange={(e) => setD({ ...d, country_code: e.target.value })}
-                  className="w-full border border-white/10 p-3 rounded bg-white/5 text-white"
+                  className="dark-select w-full border border-white/10 p-3 rounded bg-white/5 text-white"
                 >
                   <option value="">—</option>
                   {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
@@ -263,7 +292,6 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
                       </div>
                     </div>
                   )}
-
                 </div>
               </div>
             </form>
@@ -291,6 +319,7 @@ export default function UserModal({ userId, onClose }: { userId: string, onClose
         )}
         {!loading && !d && <p className="text-red-500">No se pudo cargar el usuario.</p>}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
