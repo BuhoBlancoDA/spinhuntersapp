@@ -189,3 +189,4 @@ input[type="checkbox"].accent-brand { accent-color: #E1322E; }
 .btn-ghost {
   @apply inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 transition;
 }
+.link-underline { text-decoration: underline; text-underline-offset: 2px; }

@@ -5,9 +5,10 @@ export const revalidate = 0
 
 import Link from 'next/link'
 import Image from 'next/image'
+import { unstable_noStore as noStore } from 'next/cache'
 import { supabaseServer } from '@/lib/supabase-server'
 import SignOutButton from '@/components/SignOutButton'
-import { unstable_noStore as noStore } from 'next/cache'
+import SalasAfiliadasButton from '@/components/SalasAfiliadasButton'
 
 export default async function Header() {
   noStore()
@@ -16,32 +17,44 @@ export default async function Header() {
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
-    <header className="w-full sticky top-0 z-50 bg-black/80 backdrop-blur-md">
-      <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
-        <Link href="/" prefetch={false} className="flex items-center gap-3">
-          <Image
-            src="/brand/logo-circle.png"
-            width={36}
-            height={36}
-            alt="SpinHunters"
-            className="rounded-full"
-            priority
-          />
-          <span className="text-lg sm:text-xl font-semibold tracking-wide text-white">
-            SpinHunters
-          </span>
-        </Link>
+    <header className="sticky top-0 z-50 bg-black/45 backdrop-blur supports-[backdrop-filter]:bg-black/45 border-b border-white/10">
+      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
+        {/* Izquierda: marca + CTA Salas Afiliadas */}
+        <div className="flex items-center gap-3">
+          <Link href="/" prefetch={false} className="flex items-center gap-3">
+            <Image
+              src="/brand/logo-circle.png"
+              width={36}
+              height={36}
+              alt="SpinHunters"
+              className="rounded-full"
+              priority
+            />
+            <span className="text-lg sm:text-xl font-semibold tracking-wide text-white">
+              SpinHunters
+            </span>
+          </Link>
 
-        <nav className="hidden sm:flex items-center gap-3">
+          {/* Salas Afiliadas siempre a la izquierda */}
+          <div className="hidden sm:block">
+            <SalasAfiliadasButton />
+          </div>
+          <div className="sm:hidden">
+            <SalasAfiliadasButton />
+          </div>
+        </div>
+
+        {/* Derecha: acciones */}
+        <nav className="flex items-center gap-2 sm:gap-3">
           {user ? (
             <>
-              {/* ⚠️ Usamos <a> para navegación dura */}
-              <a
+              <Link
                 href="/dashboard"
-                className="px-3 py-2 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+                prefetch={false}
+                className="inline-flex items-center rounded-lg bg-brand text-white px-3 py-2 sm:px-4 hover:bg-brand/90 transition shadow-glow text-sm"
               >
                 Mi cuenta
-              </a>
+              </Link>
               <SignOutButton />
             </>
           ) : (
@@ -49,14 +62,14 @@ export default async function Header() {
               <Link
                 href="/auth/sign-up"
                 prefetch={false}
-                className="px-3 py-2 text-sm rounded bg-brand hover:bg-brand/90 text-white"
+                className="inline-flex items-center rounded-lg bg-brand text-white px-3 py-2 sm:px-4 hover:bg-brand/90 transition shadow-glow text-sm"
               >
                 Crear cuenta
               </Link>
               <Link
                 href="/auth/sign-in"
                 prefetch={false}
-                className="px-3 py-2 text-sm rounded border border-white/10 hover:border-white/20"
+                className="inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-3 py-2 sm:px-4 text-sm hover:bg-white/10"
               >
                 Iniciar sesión
               </Link>
@@ -64,8 +77,9 @@ export default async function Header() {
           )}
         </nav>
       </div>
+
+      {/* divisor inferior sutil */}
       <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </header>
   )
 }
-
