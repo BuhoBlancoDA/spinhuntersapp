@@ -1,3 +1,4 @@
+// src/app/admin/page.tsx
 import { supabaseServer } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
@@ -11,11 +12,11 @@ export default async function AdminPage() {
   const { data: isAdmin } = await supabase.rpc('is_admin')
   if (!isAdmin) redirect('/')
 
-  // Contadores de soporte (pendientes = OPEN o IN_PROGRESS)
+  // Contadores de soporte (pendientes = OPEN o IN_PROGRESS) para SUPPORT + PURCHASE
   const { count: openCount } = await supabase
     .from('tickets')
     .select('id', { count: 'exact', head: true })
-    .eq('type', 'SUPPORT')
+    .in('type', ['SUPPORT', 'PURCHASE'])
     .in('status', ['OPEN', 'IN_PROGRESS'])
 
   return (
@@ -65,7 +66,7 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          {/* Soporte (reemplaza "Contenido próximamente") */}
+          {/* Soporte */}
           <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
             <div className="flex-1">
               <h2 className="text-lg font-semibold">Soporte</h2>

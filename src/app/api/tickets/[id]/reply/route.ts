@@ -1,64 +1,83 @@
 // src/app/api/tickets/[id]/reply/route.ts
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
-import { supabaseAdmin } from '@/lib/supabaseAdmin'
-import { sendAdminTicketUpdateEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+// Normaliza el payload: acepta JSON, x-www-form-urlencoded, o querystring (?body=...)
+async function readPayload(req: Request) {
+  let payload: any = {}
   try {
-    const supabase = supabaseServer()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const id = Number(params.id)
-    if (!id || Number.isNaN(id)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
-
-    const { body } = await req.json().catch(() => ({} as any))
-    if (!body || typeof body !== 'string') return NextResponse.json({ error: 'Body required' }, { status: 400 })
-
-    // Verificar que el ticket le pertenece (RLS igual protege, pero validamos)
-    const { data: ticket, error: tErr } = await supabase
-      .from('tickets')
-      .select('id, subject, user_id, status')
-      .eq('id', id)
-      .maybeSingle()
-    if (tErr || !ticket) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-
-    // Insert mensaje como USER (RLS lo permite)
-    const { error: mErr } = await supabase
-      .from('ticket_messages')
-      .insert([{
-        ticket_id: ticket.id,
-        author_id: user.id,
-        author_role: 'USER',
-        body: String(body).slice(0, 10000),
-        is_internal: false,
-      }])
-    if (mErr) return NextResponse.json({ error: mErr.message }, { status: 400 })
-
-    // Si estaba CLOSED, lo pasamos a OPEN (opcional)
-    if (ticket.status === 'CLOSED') {
-      await supabase.from('tickets').update({ status: 'OPEN' }).eq('id', ticket.id)
+    const raw = await req.text()
+    if (raw) {
+      try {
+        payload = JSON.parse(raw)
+      } catch {
+        const params = new URLSearchParams(raw)
+        payload = Object.fromEntries(params.entries())
+      }
     }
-
-    // Email al admin avisando respuesta
-    const admin = supabaseAdmin()
-    const { data: authUser } = await admin.auth.admin.getUserById(user.id)
-    const userEmail = authUser?.user?.email || 'usuario@desconocido'
-    await sendAdminTicketUpdateEmail({
-      ticketId: ticket.id,
-      subject: ticket.subject,
-      userEmail,
-      body,
-    })
-
-    return NextResponse.json({ ok: true })
-  } catch (e: any) {
-    console.error('user reply error:', e)
-    return NextResponse.json({ error: e?.message || 'Unexpected error' }, { status: 500 })
+  } catch {
+    // ignore
   }
+  // Fallback a querystring si no vino en body
+  const url = new URL(req.url)
+  if (payload.body == null && url.searchParams.has('body')) {
+    payload.body = url.searchParams.get('body')
+  }
+  return payload
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  const id = Number(params.id)
+  if (!id) return NextResponse.json({ error: 'Invalid ticket id' }, { status: 400 })
+
+  const supabase = supabaseServer()
+
+  // Usuario autenticado
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  // Cargar body tolerante
+  const payload = await readPayload(req)
+  const rawBody = payload?.body
+  const body = typeof rawBody === 'string' ? rawBody.trim() : ''
+
+  if (!body) {
+    return NextResponse.json({ error: 'Mensaje requerido' }, { status: 400 })
+  }
+
+  // Verificar que el ticket pertenece al usuario (defensa en profundidad; además de RLS)
+  const { data: ticket, error: tErr } = await supabase
+    .from('tickets')
+    .select('id, user_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (tErr || !ticket) {
+    return NextResponse.json({ error: 'Ticket no encontrado' }, { status: 404 })
+  }
+  if (ticket.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Insertar mensaje del usuario
+  const { error: mErr } = await supabase
+    .from('ticket_messages')
+    .insert([{
+      ticket_id: id,
+      author_role: 'USER',
+      body
+    }])
+
+  if (mErr) {
+    return NextResponse.json({ error: mErr.message }, { status: 400 })
+  }
+
+  return NextResponse.json({ ok: true })
 }

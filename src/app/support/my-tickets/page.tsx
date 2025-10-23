@@ -14,11 +14,11 @@ export default async function MyTicketsPage() {
   if (!user) redirect('/auth/sign-in')
 
   const { data: tickets } = await supabase
-    .from('tickets')
-    .select('id, subject, status, created_at')
-    .eq('user_id', user.id)
-    .eq('type', 'SUPPORT')
-    .order('created_at', { ascending: false })
+  .from('tickets')
+  .select('id, subject, status, created_at')
+  .eq('user_id', user.id)
+  .in('type', ['SUPPORT', 'PURCHASE'])
+  .order('created_at', { ascending: false })
 
   const fmtDate = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleString() : ''

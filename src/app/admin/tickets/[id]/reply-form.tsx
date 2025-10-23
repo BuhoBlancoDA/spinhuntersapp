@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function ReplyForm({ ticketId }: { ticketId: number }) {
+  const router = useRouter()
   const [body, setBody] = useState('')
-  const [status, setStatus] = useState<'OPEN' | 'IN_PROGRESS' | 'CLOSED'>('IN_PROGRESS')
+  const [status, setStatus] = useState<'OPEN' | 'IN_PROGRESS'| 'CLOSED'>('IN_PROGRESS')
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState('')
 
@@ -12,21 +14,29 @@ export default function ReplyForm({ ticketId }: { ticketId: number }) {
     e.preventDefault()
     setLoading(true); setOk('')
     try {
+      // SIEMPRE al endpoint único:
       const res = await fetch(`/api/admin/tickets/${ticketId}/reply`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ body, new_status: status }),
+        body: JSON.stringify({
+          body: body.trim() || "",     // puede ir vacío
+          new_status: status || "",    // opcional
+        }),
       })
-      const j = await res.json()
+      const j = await res.json().catch(() => null)
       if (!res.ok) throw new Error(j?.error || 'Error')
-      setOk('Respuesta enviada al usuario.')
+
+      setOk(j?.message || 'Acción realizada.')
       setBody('')
+      router.refresh()
     } catch (e: any) {
       alert(e?.message || 'Error')
     } finally {
       setLoading(false)
     }
   }
+
+  const btnLabel = body.trim() ? 'Responder' : 'Actualizar estado'
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -45,14 +55,13 @@ export default function ReplyForm({ ticketId }: { ticketId: number }) {
         </div>
 
         <div className="sm:col-span-3">
-          <label className="text-sm block mb-1">Respuesta al usuario</label>
+          <label className="text-sm block mb-1">Respuesta al usuario (opcional)</label>
           <textarea
             value={body}
             onChange={e => setBody(e.target.value)}
-            required
             rows={6}
             className="dark-input w-full text-sm rounded-lg p-3"
-            placeholder="Escribe tu respuesta…"
+            placeholder="Escribe tu respuesta… (puedes dejarlo vacío para solo actualizar el estado)"
           />
         </div>
       </div>
@@ -63,7 +72,7 @@ export default function ReplyForm({ ticketId }: { ticketId: number }) {
           disabled={loading}
           className="inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition disabled:opacity-50 shadow-glow"
         >
-          {loading ? 'Enviando…' : 'Responder'}
+          {loading ? 'Enviando…' : btnLabel}
         </button>
       </div>
     </form>

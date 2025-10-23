@@ -20,9 +20,9 @@ export default async function AdminTicketsPage({
   if (!isAdmin) redirect('/')
 
   let query = supabase
-    .from('tickets')
-    .select('id, type, subject, status, created_at')
-    .eq('type', 'SUPPORT')
+  .from('tickets')
+  .select('id, type, subject, status, created_at')
+  .in('type', ['SUPPORT', 'PURCHASE'])
 
   if (searchParams?.pending === '1') {
     query = query.in('status', ['OPEN', 'IN_PROGRESS'])

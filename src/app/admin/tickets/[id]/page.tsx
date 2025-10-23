@@ -5,7 +5,7 @@ import ReplyForm from './reply-form'
 import Link from 'next/link'
 import Image from 'next/image'
 
-export const dynamic = 'force-dynamic'
+export const dynamic = 'nodejs'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
 
@@ -17,9 +17,10 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
   const { data: isAdmin } = await supabase.rpc('is_admin')
   if (!isAdmin) redirect('/')
 
+  // Simplificamos el SELECT: solo lo necesario
   const { data: ticket } = await supabase
     .from('tickets')
-    .select('id, type, subject, status, user_id, purchase_method, transaction_code, amount, currency, created_at')
+    .select('id, type, subject, status, created_at')
     .eq('id', id)
     .maybeSingle()
 
@@ -49,22 +50,10 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
 
   return (
     <main className="relative min-h-dvh overflow-hidden">
-      {/* Fondo hero + overlay */}
+      {/* Fondo */}
       <div className="absolute inset-0 -z-10">
-        <Image
-          src="/Hero/hero-mobile.webp"
-          alt=""
-          fill
-          className="object-cover md:hidden"
-          priority
-        />
-        <Image
-          src="/Hero/hero-desktop.webp"
-          alt=""
-          fill
-          className="hidden md:block object-cover"
-          priority
-        />
+        <Image src="/Hero/hero-mobile.webp" alt="" fill className="object-cover md:hidden" priority />
+        <Image src="/Hero/hero-desktop.webp" alt="" fill className="hidden md:block object-cover" priority />
         <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/75 to-black/90" />
       </div>
 
@@ -94,10 +83,9 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
           <div aria-hidden className="mt-6 hud-divider" />
         </section>
 
-        {/* Meta del ticket */}
+        {/* Meta del ticket (simple: Tipo y Estado) */}
         <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
           <h2 className="text-lg font-semibold mb-4">Detalles</h2>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
             <div className="rounded-lg border border-white/10 bg-white/5 p-3">
               <div className="text-white/60 text-xs mb-1">Tipo</div>
@@ -107,23 +95,6 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
               <div className="text-white/60 text-xs mb-1">Estado</div>
               <div><StatusChip status={ticket?.status} /></div>
             </div>
-
-            {ticket?.type === 'PURCHASE' && (
-              <>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <div className="text-white/60 text-xs mb-1">Método</div>
-                  <div className="text-white/90">{ticket?.purchase_method || '-'}</div>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <div className="text-white/60 text-xs mb-1">Código</div>
-                  <div className="text-white/90 break-all">{ticket?.transaction_code || '-'}</div>
-                </div>
-                <div className="rounded-lg border border-white/10 bg-white/5 p-3">
-                  <div className="text-white/60 text-xs mb-1">Monto</div>
-                  <div className="text-white/90">{ticket?.amount ?? '-'} {ticket?.currency}</div>
-                </div>
-              </>
-            )}
           </div>
         </section>
 
@@ -134,14 +105,10 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
               const isAdminMsg = m.author_role === 'ADMIN'
               return (
                 <li key={m.id} className={`flex ${isAdminMsg ? 'justify-end' : 'justify-start'}`}>
-                  <div
-                    className={[
-                      'max-w-[85%] rounded-xl border p-3',
-                      isAdminMsg
-                        ? 'border-brand/40 bg-brand/10'
-                        : 'border-white/10 bg-white/5'
-                    ].join(' ')}
-                  >
+                  <div className={[
+                    'max-w-[85%] rounded-xl border p-3',
+                    isAdminMsg ? 'border-brand/40 bg-brand/10' : 'border-white/10 bg-white/5'
+                  ].join(' ')}>
                     <div className="flex items-center justify-between gap-3 mb-1">
                       <span className="text-xs text-white/70">{m.author_role}</span>
                       <span className="text-[11px] text-white/50">{fmtDate(m.created_at)}</span>
@@ -157,7 +124,7 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
           </ul>
         </section>
 
-        {/* Responder */}
+        {/* Responder / actualizar estado */}
         <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
           <h2 className="text-lg font-semibold mb-4">Responder al usuario</h2>
           <ReplyForm ticketId={id} />
