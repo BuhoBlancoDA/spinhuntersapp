@@ -12,14 +12,16 @@ type Product = {
 }
 
 export default function PurchaseModal({ products, onClose }: { products: Product[]; onClose: () => void }) {
-  // ---- PORTAL + bloqueo scroll ----
+  // ---- PORTAL + bloqueo scroll + ESC para cerrar ----
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
-  }, [])
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+  }, [onClose])
 
   // Paso: 1 selección, 2 instrucciones/formulario
   const [step, setStep] = useState<1|2>(1)
@@ -179,21 +181,35 @@ export default function PurchaseModal({ products, onClose }: { products: Product
   }
 
   const modal = (
-    <div className="fixed inset-0 z-[999] grid place-items-center bg-black/70 p-4">
-      <div className="w-[min(96vw,760px)] rounded-xl border border-white/12 bg-neutral-950 shadow-2xl">
+    <div className="fixed inset-0 z-[999]">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      {/* Panel */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="absolute inset-x-0 top-10 mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-neutral-950/95 shadow-2xl"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-          <h3 className="text-base font-semibold">Adquirir producto</h3>
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-white/10">
+          <div className="space-y-0.5">
+            <h3 className="text-lg font-semibold">Adquirir producto</h3>
+            <div className="flex items-center gap-2 text-[11px]">
+              <span className={`px-2 py-0.5 rounded border ${step === 1 ? 'border-brand/50 text-brand/90 bg-brand/10' : 'border-white/20 text-white/60'}`}>Paso 1: Selección</span>
+              <span className={`px-2 py-0.5 rounded border ${step === 2 ? 'border-brand/50 text-brand/90 bg-brand/10' : 'border-white/20 text-white/60'}`}>Paso 2: Confirmación</span>
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="text-xs px-3 py-1.5 rounded bg-red-600/90 hover:bg-red-500 text-white transition"
+            aria-label="Cerrar"
           >
             Cerrar
           </button>
         </div>
 
         {/* Contenido */}
-        <div className="p-4 space-y-4">
+        <div className="p-5">
           {step === 1 && (
             <Step1
               products={products}
@@ -248,6 +264,7 @@ export default function PurchaseModal({ products, onClose }: { products: Product
   return createPortal(modal, document.body)
 }
 
+/* ---------- Step 1 ---------- */
 function Step1(props: any) {
   const {
     products, productId, onChangeProduct,
@@ -263,16 +280,16 @@ function Step1(props: any) {
       : null
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Producto / Opción */}
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 gap-4">
         <Field label="Producto">
           <select
-            className="field"
+            className={FIELD}
             value={productId}
             onChange={(e) => onChangeProduct(e.target.value)}
           >
-            {props.products.map((p: Product) => (
+            {products.map((p: Product) => (
               <option key={p.id} value={p.id}>
                 {p.name} ({p.kind === 'MEMBERSHIP' ? 'Membresía' : 'Curso'})
               </option>
@@ -282,9 +299,9 @@ function Step1(props: any) {
 
         <Field label="Opción">
           <select
-            className="field"
+            className={FIELD}
             value={variantId}
-            onChange={(e) => { setVariantId(Number(e.target.value)); /* reset precio si quieres */ }}
+            onChange={(e) => { const v = Number(e.target.value); setVariantId(isNaN(v) ? '' : v) }}
           >
             {(variants || []).map((v: Variant) => (
               <option key={v.id} value={v.id}>
@@ -295,41 +312,44 @@ function Step1(props: any) {
         </Field>
       </div>
 
-      {/* Precio grande + Cupón */}
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
-        <div className="space-y-1">
+      {/* Precio + Cupón */}
+      <div className="grid md:grid-cols-2 gap-4 items-end">
+        <div className="rounded-xl border border-white/12 bg-white/[0.04] p-4">
           <div className="text-xs text-white/70">{amount?.label}</div>
-          <div className="text-2xl font-bold">{amount?.value}</div>
+          <div className="mt-0.5 text-2xl font-bold">{amount?.value}</div>
           {amount?.strike && (
-            <div className="text-xs text-white/60">
+            <div className="text-xs text-white/60 mt-1">
               <s>{amount.strike}</s> {amount.discount ? ` · desc ${amount.discount}` : ''}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <input
-            className="field"
-            placeholder="Código promocional"
-            value={couponCode}
-            onChange={(e) => setCouponCode(e.target.value)}
-          />
-          <button onClick={applyCoupon} className="btn-ghost" type="button">Aplicar</button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
+          <label className="text-xs flex-1">
+            <span className="block text-white/80 mb-1">Código promocional</span>
+            <input
+              className={FIELD}
+              placeholder="Escribe tu cupón"
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+            />
+          </label>
+          <button onClick={applyCoupon} type="button" className="btn-ghost h-[38px] sm:h-[40px]">Aplicar</button>
         </div>
       </div>
 
-      {/* Método */}
-      <div className="grid sm:grid-cols-2 gap-2">
+      {/* Método de pago */}
+      <div className="grid sm:grid-cols-2 gap-4">
         <SelectMethod value={method} onChange={setMethod} />
-      </div>
-
-      <div className="text-right">
-        <button onClick={goStep2} className="btn-brand">Pagar</button>
+        <div className="sm:text-right">
+          <button onClick={goStep2} className="btn-brand mt-6 sm:mt-0 w-full sm:w-auto">Continuar</button>
+        </div>
       </div>
     </div>
   )
 }
 
+/* ---------- Step 2 ---------- */
 function Step2(props: any) {
   const {
     selectedProduct, finalAmount, currency,
@@ -339,11 +359,11 @@ function Step2(props: any) {
   } = props
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm">
-        <b>ATENCIÓN:</b> Estás a punto de realizar un pago manual para <b>{selectedProduct.name}</b> por <b>{finalAmount} {currency}</b>.
+    <div className="space-y-5">
+      {/* Banner de confirmación + equivalencias */}
+      <div className="rounded-xl border border-amber-400/25 bg-amber-500/10 p-4 text-sm">
+        <b>Confirmación:</b> Pago para <b>{selectedProduct.name}</b> por <b>{finalAmount} {currency}</b>.
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          {/* Equivalente USD principal si la moneda no es USD */}
           {currency !== 'USD' && (
             <>
               <button type="button" onClick={onToggleUSD} className="px-2 py-1 rounded border border-white/20 hover:bg-white/10">
@@ -358,8 +378,6 @@ function Step2(props: any) {
               )}
             </>
           )}
-
-          {/* COP opcional */}
           <button type="button" onClick={onToggleCOP} className="px-2 py-1 rounded border border-white/20 hover:bg-white/10">
             {showCOP ? 'Ocultar equivalente COP' : 'Mostrar equivalente COP'}
           </button>
@@ -375,53 +393,50 @@ function Step2(props: any) {
 
       {/* Instrucciones por método */}
       {method === 'CARD' && (
-        <div className="space-y-2 text-sm">
-          <p>- Para pagar con <b>Tarjeta de Crédito</b>, se solicitará un <b>link de pago</b> al soporte.</p>
-          <p>- Una vez recibido podrás realizar el pago.</p>
-          <p>- <b>IMPORTANTE:</b> El cobro se realiza en <b>PESOS COLOMBIANOS</b> al TRM actual.</p>
-          <p>- Cuando completes el pago, responde el ticket donde te enviaron el link.</p>
-        </div>
+        <CardSection title="Tarjeta de crédito">
+          <p>- Se solicitará un <b>link de pago</b> al soporte.</p>
+          <p>- El cobro se realiza en <b>PESOS COLOMBIANOS</b> al TRM actual.</p>
+          <p>- Tras pagar, responde el ticket con la confirmación.</p>
+        </CardSection>
       )}
 
       {(method === 'SKRILL' || method === 'NETELLER') && (
-        <div className="space-y-2 text-sm">
-          <p>- Este pago es <b>manual</b> por <b>{method === 'SKRILL' ? 'Skrill' : 'Neteller'}</b> (importe exacto, sin comisiones).</p>
+        <CardSection title={method === 'SKRILL' ? 'Skrill' : 'Neteller'}>
+          <p>- Pago <b>manual</b> (importe exacto, sin comisiones).</p>
           <p>- Correo de destino: <b>{method === 'SKRILL' ? 'angel3.6.0@hotmail.com' : 'grupoangel360@gmail.com'}</b></p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Input label="Correo de quien envía" value={form.senderEmail} onChange={(v: string) => setForm((s: any) => ({ ...s, senderEmail: v }))} />
+          <div className="grid gap-2 sm:grid-cols-2 mt-2">
+            <Input label="Correo del remitente" value={form.senderEmail} onChange={(v: string) => setForm((s: any) => ({ ...s, senderEmail: v }))} />
             <Input label="Referencia del pago" value={form.reference} onChange={(v: string) => setForm((s: any) => ({ ...s, reference: v }))} />
           </div>
-          <p className="text-xs text-white/70">Adjunta el correo del remitente y el código de transacción.</p>
-        </div>
+          <p className="text-xs text-white/70 mt-1">Incluye remitente y referencia para verificar más rápido.</p>
+        </CardSection>
       )}
 
       {method === 'BINANCE' && (
-        <div className="space-y-2 text-sm">
-          <p>- Pago <b>manual</b> con <b>Binance</b>.</p>
+        <CardSection title="Binance">
+          <p>- Pago <b>manual</b> con Binance.</p>
           <p>- Cuenta/Correo: <b>grupoangel360@gmail.com</b></p>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 mt-2">
             <Input label="Hash de la transacción" value={form.hash} onChange={(v: string) => setForm((s: any) => ({ ...s, hash: v }))} />
           </div>
-          <p className="text-xs text-white/70">Incluye el <b>hash</b> para verificar el pago.</p>
-        </div>
+        </CardSection>
       )}
 
       {method === 'CRYPTO' && (
-        <div className="space-y-2 text-sm">
-          <p>- Pago <b>manual</b> con <b>Criptomonedas</b>.</p>
+        <CardSection title="Criptomonedas">
           <ul className="list-disc pl-5 space-y-1">
             <li>USDT TRC20: <code className="text-xs">TKSrWyXgg5VuKiiCVGGTUXtSsZBr6cjs8b</code></li>
             <li>USDT ERC20: <code className="text-xs break-all">0x26a1fb283de104bde578b79185fd602bcc72ebbc</code></li>
           </ul>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 mt-2">
             <Input label="Hash de la transacción" value={form.hash} onChange={(v: string) => setForm((s: any) => ({ ...s, hash: v }))} />
           </div>
-          <p className="text-xs text-white/70">Si necesitas otra cripto, abre un ticket de soporte.</p>
-        </div>
+          <p className="text-xs text-white/70 mt-1">¿Otra red/cripto? Abre un ticket de soporte.</p>
+        </CardSection>
       )}
 
-      <div className="text-xs text-white/70">
-        UNA VEZ EL PAGO SEA VERIFICADO SE ACTIVARÁN LOS ACCESOS, ESTO PUEDE TARDAR 24 HORAS.
+      <div className="text-[11px] text-white/60">
+        Al verificar el pago se activarán los accesos (hasta 24 horas).
       </div>
 
       <div className="flex items-center justify-between">
@@ -438,6 +453,11 @@ function Step2(props: any) {
 
 /* ---------- UI helpers ---------- */
 
+const FIELD =
+  'w-full rounded-lg bg-neutral-900/90 text-white placeholder-white/50 ' +
+  'border border-white/15 px-3 py-2 outline-none ' +
+  'focus:ring-2 focus:ring-brand/30 focus:border-brand/60'
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="text-xs flex flex-col gap-1">
@@ -447,11 +467,20 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   )
 }
 
+function CardSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+      <h4 className="text-sm font-semibold tracking-wide text-white/90 mb-1">{title}</h4>
+      <div className="space-y-1 text-sm">{children}</div>
+    </section>
+  )
+}
+
 function SelectMethod({ value, onChange }: { value: any; onChange: (v: any) => void }) {
   return (
     <label className="text-xs flex flex-col gap-1">
       <span className="text-white/80">Método de pago</span>
-      <select className="field" value={value} onChange={(e) => onChange(e.target.value as any)}>
+      <select className={FIELD} value={value} onChange={(e) => onChange(e.target.value as any)}>
         <option value="">Selecciona…</option>
         <option value="CARD">Tarjeta de Crédito</option>
         <option value="SKRILL">Skrill</option>
@@ -467,7 +496,7 @@ function Input({ label, value, onChange }: { label: string; value: any; onChange
   return (
     <label className="text-xs flex flex-col gap-1">
       <span className="text-white/80">{label}</span>
-      <input className="field" value={value || ''} onChange={(e) => onChange(e.target.value)} />
+      <input className={FIELD} value={value || ''} onChange={(e) => onChange(e.target.value)} />
     </label>
   )
 }
@@ -479,10 +508,3 @@ function labelMethod(m: string) {
     : m === 'BINANCE' ? 'Binance'
     : 'Criptomonedas'
 }
-
-/* ---------- estilos utilitarios tailwind ---------- */
-/* Usa estas clases en tu globals si quieres:
-.field { @apply text-sm rounded border border-white/20 bg-neutral-900 px-2 py-2; }
-.btn-ghost { @apply text-sm rounded bg-white/10 px-3 py-2 hover:bg-white/15; }
-.btn-brand { @apply inline-flex items-center rounded bg-brand text-white px-4 py-2 hover:bg-brand/90 transition disabled:opacity-50; }
-*/

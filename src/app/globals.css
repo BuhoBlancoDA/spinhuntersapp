@@ -182,3 +182,10 @@ input[type="checkbox"].accent-brand { accent-color: #E1322E; }
   background: rgba(255,255,255,0.12);
 }
 
+/* --- Buttons (reutilizables) --- */
+.btn-brand {
+  @apply inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition shadow-glow disabled:opacity-50;
+}
+.btn-ghost {
+  @apply inline-flex items-center rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10 transition;
+}

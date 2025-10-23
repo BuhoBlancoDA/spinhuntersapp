@@ -113,7 +113,7 @@ export default async function DashboardPage() {
   const BUNNY_IFRAME_SRC =
     'https://iframe.mediadelivery.net/embed/80866/cf5ca02e-0b58-4e01-8e52-9de8c9327917?autoplay=false&loop=false&muted=false&preload=true&responsive=true'
 
-  // UI helpers
+  // ===== UI helpers (solo presentación) =====
   const StatusChip = ({ active }: { active: boolean }) => (
     <span
       className={[
@@ -142,6 +142,18 @@ export default async function DashboardPage() {
     }
   }
 
+  const daysLeft = (() => {
+    if (!ultimateActive || !ultimateEndAt) return null
+    const ms = new Date(ultimateEndAt).getTime() - Date.now()
+    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)))
+  })()
+
+  const DaysBadge = ({ days }: { days: number }) => (
+    <span className="text-[11px] px-2 py-0.5 rounded border border-white/15 bg-white/5 text-white/80">
+      expira en {days} {days === 1 ? 'día' : 'días'}
+    </span>
+  )
+
   return (
     <main className="relative min-h-dvh overflow-hidden">
       {/* Fondo hero + overlay para coherencia visual */}
@@ -167,18 +179,21 @@ export default async function DashboardPage() {
         {/* Header */}
         <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-bold flex items-center gap-2">
-                Hola, {username}
-                {isAdmin && (
-                  <span className="text-[11px] px-2 py-0.5 rounded border border-brand/50 text-brand/90 bg-brand/10">
-                    [Admin]
-                  </span>
-                )}
-              </h1>
-              <p className="text-sm text-white/70">
-                Correo registrado: <span className="text-white/90">{user.email}</span>
-              </p>
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/5">👋</span>
+              <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                  Hola, {username}
+                  {isAdmin && (
+                    <span className="text-[11px] px-2 py-0.5 rounded border border-brand/50 text-brand/90 bg-brand/10">
+                      [Admin]
+                    </span>
+                  )}
+                </h1>
+                <p className="text-sm text-white/70">
+                  Correo registrado: <span className="text-white/90">{user.email}</span>
+                </p>
+              </div>
             </div>
 
             <Link
@@ -198,15 +213,20 @@ export default async function DashboardPage() {
           </p>
         </section>
 
-        {/* Botón Adquirir arriba de Membresía */}
-        <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-4 sm:p-5">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-lg font-semibold">Adquirir productos</h2>
-            <PurchaseButton
-              products={(products || []).map(p => ({ ...p, variants: variantsByProduct[p.id] || [] }))}
-            />
-          </div>
-        </section>
+        {/* Adquirir productos */}
+        {Array.isArray(products) && products.length > 0 && (
+          <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/5">🛒</span>
+                <h2 className="text-lg font-semibold">Adquirir productos</h2>
+              </div>
+              <PurchaseButton
+                products={(products || []).map(p => ({ ...p, variants: variantsByProduct[p.id] || [] }))}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Tarjeta: Membresía Ultimate */}
         <section
@@ -222,6 +242,7 @@ export default async function DashboardPage() {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 MEMBRESÍA ULTIMATE <StatusChip active={ultimateEnabled} />
+                {daysLeft != null && <DaysBadge days={daysLeft} />}
               </h2>
 
               {ultimateEnabled ? (
@@ -245,88 +266,100 @@ export default async function DashboardPage() {
           </div>
 
           {/* Contenidos / Accesos (solo si enabled) */}
-          {ultimateEnabled && (
-            <div className="space-y-5">
-              {/* 0) Horario de clases (9–10 am Bogotá) */}
-              <ClassScheduleCard
-                initialCountryCode={countryCode}
-                classDaysLabel="Lunes, Miércoles, Viernes y Sábados"
-                baseTZ="America/Bogota"
-                startH={9}
-                startM={0}
-                endH={10}
-                endM={0}
-              />
+            {ultimateEnabled && (
+              <div className="space-y-5">
+                {/* 0) Horario de clases (9–10 am Bogotá) */}
+                <ClassScheduleCard
+                  initialCountryCode={countryCode}
+                  classDaysLabel="Lunes, Miércoles, Viernes y Sábados"
+                  baseTZ="America/Bogota"
+                  startH={9}
+                  startM={0}
+                  endH={10}
+                  endM={0}
+                />
 
-              {/* 1) Rangos Preflop */}
-              <div className="rounded-xl border border-white/10 p-4 bg-white/[0.04]">
-                <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90">RANGOS PREFLOP</h3>
-                <div className="flex flex-wrap items-center gap-2">
-                  <a
-                    href={PREFLOP_LATEST_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-lg bg-white/5 text-white px-4 py-2 border border-white/15 hover:bg-white/10 transition text-sm"
-                  >
-                    Descargar Tablas Preflop (última versión)
-                  </a>
-                  <PreflopVideoButton
-                    iframeSrc={BUNNY_IFRAME_SRC}
-                    buttonLabel="Video explicativo"
-                  />
-                </div>
-              </div>
+                {/* 1 & 2) Preflop + Classroom en dos columnas */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Rangos Preflop */}
+                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
+                    <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
+                      RANGOS PREFLOP
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={PREFLOP_LATEST_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg bg-white/5 text-white px-4 py-2 border border-white/15 hover:bg-white/10 transition text-sm"
+                      >
+                        Descargar Tablas Preflop (última versión)
+                      </a>
+                      <PreflopVideoButton
+                        iframeSrc={BUNNY_IFRAME_SRC}
+                        buttonLabel="Video explicativo"
+                      />
+                    </div>
+                  </div>
 
-              {/* 2) Ingreso al Classroom + ayuda */}
-              <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={CLASSROOM_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition shadow-glow"
-                >
-                  Ingreso al Classroom
-                </a>
+                  {/* Ingreso Classroom */}
+                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
+                    <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
+                      GOOGLE CLASSROOM
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <a
+                        href={CLASSROOM_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition shadow-glow"
+                      >
+                        Ingreso al Classroom
+                      </a>
 
-                {/* Ayuda (popover nativo) */}
-                <button
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-sm text-white/80 hover:bg-white/10"
-                  aria-label="Ayuda Classroom"
-                  popovertarget="classroom-help"
-                  popovertargetaction="toggle"
-                  title="Ayuda"
-                >
-                  ?
-                </button>
+                      {/* Ayuda (popover nativo) */}
+                      <button
+                        type="button"
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-sm text-white/80 hover:bg-white/10"
+                        aria-label="Ayuda Classroom"
+                        popovertarget="classroom-help"
+                        popovertargetaction="toggle"
+                        title="Ayuda"
+                      >
+                        ?
+                      </button>
 
-                <div
-                  id="classroom-help"
-                  popover="manual"
-                  className="max-w-xs rounded-lg border border-white/10 bg-neutral-900/95 p-3 shadow-xl backdrop-blur"
-                >
-                  <p className="text-sm leading-relaxed text-white/90">Para acceder al Classroom:</p>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-white/80 space-y-1">
-                    <li>Acepta la invitación que llega a tu correo electrónico.</li>
-                    <li>Revisa también la carpeta <b>Spam</b>.</li>
-                    <li>Tu membresía debe estar <b>activa</b>.</li>
-                    <li>¿No llegó el correo? Contacta con <b>soporte</b> para reenvío.</li>
-                  </ul>
-                  <div className="mt-3 text-right">
-                    <button
-                      className="text-xs px-3 py-1.5 rounded bg-red-600/90 hover:bg-red-500 text-white transition"
-                      popovertarget="classroom-help"
-                      popovertargetaction="hide"
-                    >
-                      Cerrar
-                    </button>
+                      <div
+                        id="classroom-help"
+                        popover="manual"
+                        className="max-w-xs rounded-lg border border-white/10 bg-neutral-900/95 p-3 shadow-xl backdrop-blur"
+                      >
+                        <p className="text-sm leading-relaxed text-white/90">Para acceder al Classroom:</p>
+                        <ul className="mt-2 list-disc pl-5 text-sm text-white/80 space-y-1">
+                          <li>Acepta la invitación que llega a tu correo electrónico.</li>
+                          <li>Revisa también la carpeta <b>Spam</b>.</li>
+                          <li>Tu membresía debe estar <b>activa</b>.</li>
+                          <li>¿No llegó el correo? Contacta con <b>soporte</b> para reenvío.</li>
+                        </ul>
+                        <div className="mt-3 text-right">
+                          <button
+                            className="text-xs px-3 py-1.5 rounded bg-red-600/90 hover:bg-red-500 text-white transition"
+                            popovertarget="classroom-help"
+                            popovertargetaction="hide"
+                          >
+                            Cerrar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="mt-2 text-xs text-white/70">
+                      Accede a las clases, anuncios y más.
+                    </p>
                   </div>
                 </div>
               </div>
-
-              <p className="text-xs text-white/70">Accede a las clases, anuncios y más</p>
-            </div>
-          )}
+            )}
         </section>
 
         {/* Tickets abiertos del usuario (Soporte/Compras) */}
