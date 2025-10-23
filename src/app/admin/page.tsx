@@ -11,6 +11,13 @@ export default async function AdminPage() {
   const { data: isAdmin } = await supabase.rpc('is_admin')
   if (!isAdmin) redirect('/')
 
+  // Contadores de soporte (pendientes = OPEN o IN_PROGRESS)
+  const { count: openCount } = await supabase
+    .from('tickets')
+    .select('id', { count: 'exact', head: true })
+    .eq('type', 'SUPPORT')
+    .in('status', ['OPEN', 'IN_PROGRESS'])
+
   return (
     <main className="relative min-h-dvh overflow-hidden">
       {/* Fondo hero + overlay */}
@@ -45,7 +52,7 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          {/* Membresías — reemplaza la tarjeta de “Reportes” */}
+          {/* Membresías */}
           <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
             <div className="flex-1">
               <h2 className="text-lg font-semibold">Membresías</h2>
@@ -58,10 +65,34 @@ export default async function AdminPage() {
             </div>
           </div>
 
-          {/* Placeholder futuro */}
-          <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 sm:p-6 opacity-70">
-            <h2 className="text-lg font-semibold">Contenido (próximamente)</h2>
-            <p className="mt-1 text-sm text-white/60">Gestión de cursos y lecciones.</p>
+          {/* Soporte (reemplaza "Contenido próximamente") */}
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">Soporte</h2>
+              <p className="mt-1 text-sm text-white/70">
+                Tickets, mensajes y solicitudes pendientes.
+              </p>
+              <div className="mt-3 text-sm text-white/80">
+                Pendientes: <b>{openCount ?? 0}</b>
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/admin/tickets"
+                prefetch={false}
+                className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand/90 shadow-glow"
+              >
+                Tickets
+              </Link>
+              <Link
+                href="/admin/tickets?pending=1"
+                prefetch={false}
+                className="inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/15"
+                title="Ver OPEN e IN_PROGRESS"
+              >
+                Pendientes
+              </Link>
+            </div>
           </div>
         </section>
       </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { tzFromCountryCode, COUNTRY_TZ } from '../country-tz'
 
 type Props = {
@@ -9,19 +9,19 @@ type Props = {
   baseTZ?: string            // Zona base (Bogotá)
   startH?: number            // 9 (9:00 am)
   startM?: number            // 0
-  endH?: number              // 10 (10:00 am)  <-- ACTUALIZADO
+  endH?: number              // 10 (10:00 am)
   endM?: number              // 0
 }
 
 const DEFAULT_DAYS = 'Lunes, Miércoles, Viernes y Sábados'
 const BASE_TZ_DEFAULT = 'America/Bogota'
 
-function getCountryName(code?: string) {
+function safeCountryName(code?: string) {
   try {
     const dn = new Intl.DisplayNames(['es'], { type: 'region' })
-    return dn.of((code || 'CO').toUpperCase()) ?? 'Colombia'
+    return dn.of((code || 'CO').toUpperCase()) ?? (code || 'CO')
   } catch {
-    return 'Colombia'
+    return code || 'CO'
   }
 }
 
@@ -103,12 +103,26 @@ export default function ClassScheduleCard({
   baseTZ = BASE_TZ_DEFAULT,
   startH = 9,
   startM = 0,
-  endH = 10,   // <-- ACTUALIZADO: 10:00 am
+  endH = 10,   // 10:00 am
   endM = 0,
 }: Props) {
   const [countryCode, setCountryCode] = useState<string>(initialCountryCode || 'CO')
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
+
+  // Lista de códigos estable y ordenada
+  const allCountryCodes = useMemo(() => Object.keys(COUNTRY_TZ).sort(), [])
 
   const { countryName, horarioLinea } = useMemo(() => {
+    // Evitamos usar Intl en SSR/primer render: así no hay diferencias de texto
+    if (!mounted) {
+      return {
+        countryName: countryCode, // muestra código mientras hidrata
+        horarioLinea: '—',        // placeholder inicial (coincide SSR/cliente primera pasada)
+      }
+    }
+
     const tz = tzFromCountryCode(countryCode)
     const { y, m, d } = ymdInTZ(baseTZ)
     const startUTC = zonedTimeToUTC(y, m, d, startH, startM, baseTZ)
@@ -116,12 +130,10 @@ export default function ClassScheduleCard({
     const { startStr, endStr, crossesDay } = formatRangeInTZ(tz, startUTC, endUTC)
     const suffix = crossesDay ? ' (+1 día)' : ''
     return {
-      countryName: getCountryName(countryCode),
+      countryName: safeCountryName(countryCode),
       horarioLinea: `${startStr} – ${endStr}${suffix}`,
     }
-  }, [countryCode, baseTZ, startH, startM, endH, endM])
-
-  const allCountryCodes = useMemo(() => Object.keys(COUNTRY_TZ).sort(), [])
+  }, [mounted, countryCode, baseTZ, startH, startM, endH, endM])
 
   return (
     <div className="rounded-lg border border-white/10 p-3 bg-black/10">
@@ -136,8 +148,8 @@ export default function ClassScheduleCard({
             title="Seleccionar país"
           >
             {allCountryCodes.map(code => (
-              <option key={code} value={code}>
-                {getCountryName(code)} ({code})
+              <option key={code} value={code} /* evita mismatch al hidratar */ suppressHydrationWarning>
+                {mounted ? safeCountryName(code) : code} ({code})
               </option>
             ))}
           </select>
@@ -152,7 +164,12 @@ export default function ClassScheduleCard({
       </div>
 
       <p className="text-sm text-white/85 mt-2">
-        {classDaysLabel}: <b>{horarioLinea}</b> <span className="text-white/70">({countryCode})</span>
+        {classDaysLabel}:{' '}
+        {/* Nombre país también puede diferir: lo protegemos */}
+        <b suppressHydrationWarning>{horarioLinea}</b>{' '}
+        <span className="text-white/70" suppressHydrationWarning>
+          ({countryName})
+        </span>
       </p>
       <p className="text-xs text-white/60 mt-1">
         * Horario base: Colombia (Bogotá). Convertido a tu país seleccionado.
