@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function ProductEditor({
   mode,
@@ -19,32 +19,87 @@ export default function ProductEditor({
   const [isActive, setIsActive] = useState<boolean>(product?.is_active ?? true)
   const [planId, setPlanId] = useState<number | ''>(product?.membership_plan_id || '')
 
-  const [vs, setVs] = useState<(any)[]>(variants || [
-    { id: null, name: kind === 'MEMBERSHIP' ? '1 mes' : 'Acceso completo', duration_days: kind === 'MEMBERSHIP' ? 30 : null, price: 0, currency: 'USD', is_active: true, sort_order: 10 }
-  ])
-  const [saving, setSaving] = useState(false)
+  const [vs, setVs] = useState<any[]>(
+    (variants && variants.length > 0)
+      ? variants.map((v, idx) => ({
+          id: v.id ?? null,
+          name: v.name ?? (kind === 'MEMBERSHIP' ? '1 mes' : 'Acceso completo'),
+          duration_days: kind === 'MEMBERSHIP' ? (v.duration_days ?? 30) : null,
+          price: Number(v.price ?? 0),
+          // currency siempre EUR
+          currency: 'EUR',
+          is_active: v.is_active ?? true,
+          // sort_order lo calculamos al guardar; aquí no es editable
+          sort_order: v.sort_order ?? ((idx + 1) * 10),
+        }))
+      : [{
+          id: null,
+          name: kind === 'MEMBERSHIP' ? '1 mes' : 'Acceso completo',
+          duration_days: kind === 'MEMBERSHIP' ? 30 : null,
+          price: 0,
+          currency: 'EUR',
+          is_active: true,
+          sort_order: 10,
+        }]
+  )
+
+  // Si cambia el kind, ajustar duration de las variantes nuevas
+  useEffect(() => {
+    setVs(arr => arr.map((v, idx) => ({
+      ...v,
+      duration_days: kind === 'MEMBERSHIP' ? (v.duration_days ?? 30) : null,
+    })))
+  }, [kind])
 
   function setVariant(i: number, patch: Partial<any>) {
     setVs(arr => arr.map((v, idx) => idx === i ? { ...v, ...patch } : v))
   }
   function addVariant() {
-    setVs(arr => [...arr, { id: null, name: 'Nueva', duration_days: kind === 'MEMBERSHIP' ? 30 : null, price: 0, currency: 'USD', is_active: true, sort_order: (arr[arr.length-1]?.sort_order || 90) + 10 }])
+    setVs(arr => [
+      ...arr,
+      {
+        id: null,
+        name: 'Nueva',
+        duration_days: kind === 'MEMBERSHIP' ? 30 : null,
+        price: 0,
+        currency: 'EUR',
+        is_active: true,
+        sort_order: ((arr[arr.length-1]?.sort_order || 10) + 10),
+      }
+    ])
   }
   function removeVariant(i: number) {
     setVs(arr => arr.filter((_, idx) => idx !== i))
   }
 
   async function save() {
-    setSaving(true)
+    // Normaliza variantes: fuerza EUR y sort_order secuencial
+    const normalized = vs.map((v, idx) => ({
+      ...v,
+      price: Number(v.price ?? 0),
+      currency: 'EUR',
+      sort_order: (idx + 1) * 10
+    }))
+
     try {
-      // Upsert product
+      // Validación básica: al menos una variante con precio > 0
+      const withPrice = normalized.filter(v => Number.isFinite(v.price))
+      if (withPrice.length === 0) {
+        alert('Debes añadir al menos una variante con precio válido (en EUR).')
+        return
+      }
+
       const res = await fetch('/api/admin/products/save', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           id: product?.id || null,
-          name, description, kind, is_active: isActive, membership_plan_id: kind === 'MEMBERSHIP' ? (planId || null) : null,
-          variants: vs
+          name,
+          description,
+          kind,
+          is_active: isActive,
+          membership_plan_id: kind === 'MEMBERSHIP' ? (planId || null) : null,
+          variants: normalized
         })
       })
       const j = await res.json()
@@ -52,8 +107,6 @@ export default function ProductEditor({
       router.push('/admin/products')
     } catch (e: any) {
       alert(e?.message || 'Error')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -78,14 +131,21 @@ export default function ProductEditor({
       <div className="rounded-lg border border-white/10 p-4 space-y-3">
         <h2 className="text-lg font-semibold">Variantes / Duraciones</h2>
         {vs.map((v, i) => (
-          <div key={i} className="grid sm:grid-cols-6 gap-2 items-end border border-white/10 p-3 rounded">
+          <div key={i} className="grid sm:grid-cols-5 gap-2 items-end border border-white/10 p-3 rounded">
             <Input label="Nombre" value={v.name} onChange={val => setVariant(i, { name: val })} />
-            <Input label="Días (opcional)" value={v.duration_days ?? ''} onChange={val => setVariant(i, { duration_days: val === '' ? null : Number(val) })} />
-            <Input label="Precio" value={v.price} onChange={val => setVariant(i, { price: Number(val) })} />
-            <Input label="Moneda" value={v.currency} onChange={val => setVariant(i, { currency: val.toUpperCase() })} />
-            <Input label="Orden" value={v.sort_order} onChange={val => setVariant(i, { sort_order: Number(val) })} />
+            <Input
+              label="Días (opcional)"
+              value={v.duration_days ?? ''}
+              onChange={val => setVariant(i, { duration_days: val === '' ? null : Number(val) })}
+            />
+            <NumberInput
+              label="Precio (€)"
+              value={v.price}
+              onChange={val => setVariant(i, { price: val })}
+            />
+            <Readonly label="Moneda" value="EUR" />
             <Checkbox label="Activa" checked={v.is_active} onChange={val => setVariant(i, { is_active: val })} />
-            <div className="sm:col-span-6 text-right">
+            <div className="sm:col-span-5 text-right">
               <button onClick={() => removeVariant(i)} className="text-xs px-2 py-1 rounded bg-red-600/90 hover:bg-red-500">Eliminar</button>
             </div>
           </div>
@@ -94,8 +154,8 @@ export default function ProductEditor({
       </div>
 
       <div className="text-right">
-        <button onClick={save} disabled={saving} className="inline-flex items-center rounded bg-brand text-white px-4 py-2 hover:bg-brand/90 disabled:opacity-50">
-          {saving ? 'Guardando…' : 'Guardar'}
+        <button onClick={save} className="inline-flex items-center rounded bg-brand text-white px-4 py-2 hover:bg-brand/90">
+          Guardar
         </button>
       </div>
     </main>
@@ -106,7 +166,30 @@ function Input({ label, value, onChange, placeholder }: any) {
   return (
     <label className="text-xs flex flex-col gap-1">
       <span className="text-white/80">{label}</span>
-      <input className="text-sm rounded border border-white/20 bg-neutral-900 px-2 py-1" value={value ?? ''} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+      <input
+        className="text-sm rounded border border-white/20 bg-neutral-900 px-2 py-1"
+        value={value ?? ''} placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)} />
+    </label>
+  )
+}
+function NumberInput({ label, value, onChange }: any) {
+  return (
+    <label className="text-xs flex flex-col gap-1">
+      <span className="text-white/80">{label}</span>
+      <input
+        type="number" step="0.01" min="0"
+        className="text-sm rounded border border-white/20 bg-neutral-900 px-2 py-1"
+        value={value ?? 0}
+        onChange={(e) => onChange(parseFloat(e.target.value || '0'))} />
+    </label>
+  )
+}
+function Readonly({ label, value }: any) {
+  return (
+    <label className="text-xs flex flex-col gap-1 opacity-80">
+      <span className="text-white/80">{label}</span>
+      <input className="text-sm rounded border border-white/20 bg-neutral-900/60 px-2 py-1" value={value} readOnly />
     </label>
   )
 }

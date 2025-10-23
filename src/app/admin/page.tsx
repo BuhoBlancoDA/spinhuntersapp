@@ -95,6 +95,22 @@ export default async function AdminPage() {
               </Link>
             </div>
           </div>
+
+          {/* Productos */}
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">Productos</h2>
+              <p className="mt-1 text-sm text-white/70">Crear, editar, activar e inactivar productos y variantes.</p>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link href="/admin/products" prefetch={false} className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand/90 shadow-glow">
+                Gestionar productos
+              </Link>
+              <Link href="/admin/products/new" prefetch={false} className="inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/15">
+                Nuevo
+              </Link>
+            </div>
+          </div>
         </section>
       </div>
     </main>
