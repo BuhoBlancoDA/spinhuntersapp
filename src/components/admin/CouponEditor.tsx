@@ -1,3 +1,4 @@
+// src/components/admin/CouponEditor.tsx
 'use client'
 
 import { useState } from 'react'
@@ -16,27 +17,39 @@ type Coupon = {
   max_redemptions?: number | null
 }
 
-function toLocalInput(iso: string) {
+/* Helpers fecha: solo día en UI, ISO al guardar */
+const toDateInput = (iso?: string | null) => {
+  if (!iso) return ''
   const d = new Date(iso)
-  const off = d.getTimezoneOffset()
-  const local = new Date(d.getTime() - off * 60000)
-  return local.toISOString().slice(0, 16) // yyyy-MM-ddTHH:mm
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+const dateStartISO = (yyyyMMdd: string) => {
+  const [y, m, d] = yyyyMMdd.split('-').map(Number)
+  return new Date(y, m - 1, d, 0, 0, 0, 0).toISOString()
+}
+const dateEndISO = (yyyyMMdd: string) => {
+  const [y, m, d] = yyyyMMdd.split('-').map(Number)
+  return new Date(y, m - 1, d, 23, 59, 59, 999).toISOString()
 }
 
-export default function CouponEditor({ coupon, products }: {
+export default function CouponEditor({
+  coupon,
+  products
+}: {
   coupon?: Coupon
   products: Product[]
 }) {
   const router = useRouter()
-  const [form, setForm] = useState<Coupon>(() => ({
+  const [form, setForm] = useState(() => ({
     id: coupon?.id,
     code: coupon?.code || '',
-    kind: coupon?.kind || 'PERCENT',
+    kind: (coupon?.kind || 'PERCENT') as Coupon['kind'],
     value: coupon?.value ?? 10,
     is_active: coupon?.is_active ?? true,
     product_id: coupon?.product_id ?? null,
-    starts_at: coupon?.starts_at ? toLocalInput(coupon.starts_at) : '',
-    expires_at: coupon?.expires_at ? toLocalInput(coupon.expires_at) : '',
+    starts_on: toDateInput(coupon?.starts_at || null),
+    expires_on: toDateInput(coupon?.expires_at || null),
     max_redemptions: coupon?.max_redemptions ?? null
   }))
   const [saving, setSaving] = useState(false)
@@ -45,11 +58,14 @@ export default function CouponEditor({ coupon, products }: {
   async function onSave() {
     setSaving(true); setError(null)
     const payload = {
-      ...form,
-      // normalizamos para el API: ISO UTC o null
-      starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
-      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+      id: form.id,
+      code: form.code,
+      kind: form.kind,
+      value: Number(form.value),
+      is_active: !!form.is_active,
       product_id: form.product_id || null,
+      starts_at: form.starts_on ? dateStartISO(form.starts_on) : null,
+      expires_at: form.expires_on ? dateEndISO(form.expires_on) : null,
       max_redemptions:
         form.max_redemptions === null ||
         form.max_redemptions === undefined ||
@@ -63,9 +79,9 @@ export default function CouponEditor({ coupon, products }: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     setSaving(false)
-    if (!res.ok || !data.ok) {
+    if (!res.ok || !data?.ok) {
       setError(data?.error || 'Error al guardar')
       return
     }
@@ -77,8 +93,8 @@ export default function CouponEditor({ coupon, products }: {
     if (!form.id) return
     if (!confirm('¿Eliminar este cupón? Se borrarán también sus redenciones.')) return
     const res = await fetch(`/api/admin/coupons/${form.id}`, { method: 'DELETE' })
-    const data = await res.json()
-    if (!res.ok || !data.ok) {
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data?.ok) {
       setError(data?.error || 'No se pudo eliminar')
       return
     }
@@ -87,14 +103,19 @@ export default function CouponEditor({ coupon, products }: {
   }
 
   return (
-    <div className="glass rounded-xl p-5 space-y-4">
-      {error && <div className="text-red-300 text-sm">{error}</div>}
+    <div className="glass rounded-2xl p-6 sm:p-8 space-y-6 shadow-glow">
+      {error && (
+        <div className="rounded border border-red-500/30 bg-red-500/10 text-red-200 text-sm px-3 py-2">
+          {error}
+        </div>
+      )}
 
-      <div className="grid sm:grid-cols-2 gap-4">
+      {/* Básicos */}
+      <section className="grid sm:grid-cols-2 gap-5">
         <div>
-          <label className="text-xs text-white/60">Código</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">Código</label>
           <input
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-input w-full rounded-lg px-3 py-2 mt-1"
             value={form.code}
             onChange={(e) => setForm(f => ({ ...f, code: e.target.value }))}
             placeholder="EJ: ULTIMATE30"
@@ -105,9 +126,9 @@ export default function CouponEditor({ coupon, products }: {
         </div>
 
         <div>
-          <label className="text-xs text-white/60">Tipo de descuento</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">Tipo de descuento</label>
           <select
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-select w-full rounded-lg px-3 py-2 mt-1"
             value={form.kind}
             onChange={(e) => setForm(f => ({ ...f, kind: e.target.value as Coupon['kind'] }))}
           >
@@ -117,22 +138,22 @@ export default function CouponEditor({ coupon, products }: {
         </div>
 
         <div>
-          <label className="text-xs text-white/60">
+          <label className="text-[11px] uppercase tracking-wide text-white/60">
             Valor {form.kind === 'PERCENT' ? '(1–100)' : '(>0)'}
           </label>
           <input
             type="number"
             step="0.01"
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-input w-full rounded-lg px-3 py-2 mt-1"
             value={form.value}
             onChange={(e) => setForm(f => ({ ...f, value: Number(e.target.value) }))}
           />
         </div>
 
         <div>
-          <label className="text-xs text-white/60">Estado</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">Estado</label>
           <select
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-select w-full rounded-lg px-3 py-2 mt-1"
             value={form.is_active ? '1' : '0'}
             onChange={(e) => setForm(f => ({ ...f, is_active: e.target.value === '1' }))}
           >
@@ -142,9 +163,11 @@ export default function CouponEditor({ coupon, products }: {
         </div>
 
         <div className="sm:col-span-2">
-          <label className="text-xs text-white/60">Producto específico (opcional)</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">
+            Producto específico (opcional)
+          </label>
           <select
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-select w-full rounded-lg px-3 py-2 mt-1"
             value={form.product_id || ''}
             onChange={(e) => setForm(f => ({ ...f, product_id: e.target.value || null }))}
           >
@@ -159,32 +182,39 @@ export default function CouponEditor({ coupon, products }: {
             Si eliges un producto, el cupón solo funcionará con ese producto.
           </p>
         </div>
+      </section>
 
+      {/* Vigencia (fecha sin hora, modo oscuro) */}
+      <section className="grid sm:grid-cols-2 gap-5">
         <div>
-          <label className="text-xs text-white/60">Empieza (opcional)</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">Empieza (opcional)</label>
           <input
-            type="datetime-local"
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
-            value={form.starts_at || ''}
-            onChange={(e) => setForm(f => ({ ...f, starts_at: e.target.value }))}
+            type="date"
+            className="dark-input w-full rounded-lg px-3 py-2 mt-1"
+            value={form.starts_on}
+            onChange={(e) => setForm(f => ({ ...f, starts_on: e.target.value }))}
           />
+          <p className="text-[11px] text-white/50 mt-1">Se guardará al <b>inicio</b> del día.</p>
         </div>
 
         <div>
-          <label className="text-xs text-white/60">Termina (opcional)</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">Termina (opcional)</label>
           <input
-            type="datetime-local"
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
-            value={form.expires_at || ''}
-            onChange={(e) => setForm(f => ({ ...f, expires_at: e.target.value }))}
+            type="date"
+            className="dark-input w-full rounded-lg px-3 py-2 mt-1"
+            value={form.expires_on}
+            onChange={(e) => setForm(f => ({ ...f, expires_on: e.target.value }))}
           />
+          <p className="text-[11px] text-white/50 mt-1">Se guardará al <b>final</b> del día.</p>
         </div>
 
         <div>
-          <label className="text-xs text-white/60">Máximo de redenciones (opcional)</label>
+          <label className="text-[11px] uppercase tracking-wide text-white/60">
+            Máximo de redenciones (opcional)
+          </label>
           <input
             type="number"
-            className="w-full mt-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2"
+            className="dark-input w-full rounded-lg px-3 py-2 mt-1"
             value={form.max_redemptions ?? ''}
             onChange={(e) => {
               const v = e.target.value
@@ -193,13 +223,14 @@ export default function CouponEditor({ coupon, products }: {
             placeholder="Ej: 100"
           />
         </div>
-      </div>
+      </section>
 
-      <div className="flex gap-3 justify-end">
+      {/* Acciones */}
+      <section className="flex flex-col sm:flex-row gap-3 justify-end">
         {form.id && (
           <button
             onClick={onDelete}
-            className="px-4 py-2 rounded border border-red-500/50 text-red-200 hover:bg-red-500/10"
+            className="inline-flex items-center rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-200 hover:bg-red-500/15"
           >
             Eliminar
           </button>
@@ -207,11 +238,11 @@ export default function CouponEditor({ coupon, products }: {
         <button
           onClick={onSave}
           disabled={saving}
-          className="btn-brand"
+          className="btn-brand text-sm"
         >
           {saving ? 'Guardando…' : 'Guardar'}
         </button>
-      </div>
+      </section>
     </div>
   )
 }

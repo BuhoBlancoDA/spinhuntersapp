@@ -85,6 +85,29 @@ export default async function AdminProductsPage() {
           <div aria-hidden className="mt-6 hud-divider" />
         </section>
 
+        {/* Acceso a Cupones */}
+        <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-white/5">🏷️</span>
+                <h2 className="text-lg font-semibold">Cupones y promociones</h2>
+              </div>
+              <p className="mt-2 text-sm text-white/75">
+                Crea códigos de descuento y asígnalos a productos o aplícalos de forma global.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link href="/admin/coupons" className="btn-ghost">
+                Gestionar cupones
+              </Link>
+              <Link href="/admin/coupons/new" className="btn-brand">
+                Crear cupón
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* Lista */}
         <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md overflow-hidden">
           {/* Encabezado tipo tabla */}
