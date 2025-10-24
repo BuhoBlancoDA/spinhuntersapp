@@ -127,7 +127,8 @@ export default async function AdminTicketDetail({ params }: { params: { id: stri
         {/* Responder / actualizar estado */}
         <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8">
           <h2 className="text-lg font-semibold mb-4">Responder al usuario</h2>
-          <ReplyForm ticketId={id} />
+          {/* Ajuste: pasamos el tipo para habilitar el botón "Enviar recibo" en PURCHASE */}
+          <ReplyForm ticketId={id} ticketType={ticket?.type as 'SUPPORT' | 'PURCHASE'} />
         </section>
       </div>
     </main>
