@@ -73,6 +73,38 @@ export default async function DashboardPage() {
   // Activa si el user tiene Ultimate o si es admin
   const ultimateEnabled = ultimateActive || isAdmin
 
+  // ===== Mis cursos =====
+  // Admin: ve todos los cursos activos. Usuario: solo sus inscripciones vigentes.
+  let myCourses: Array<{ id:number; title:string; slug:string }> = []
+
+  if (isAdmin) {
+    const { data: cs } = await supabase
+      .from('courses')
+      .select('id, title, slug')
+      .eq('is_active', true)
+      .order('title', { ascending: true })
+    myCourses = cs || []
+  } else {
+    const nowIso = new Date().toISOString()
+    const { data: myEnrolls } = await supabase
+      .from('course_enrollments')
+      .select('course_id, status, start_at, end_at')
+      .eq('user_id', user.id)
+      .eq('status', 'ACTIVE')
+      .or(`end_at.is.null,end_at.gt.${nowIso}`)
+
+    if (myEnrolls && myEnrolls.length > 0) {
+      const ids = [...new Set(myEnrolls.map(e => e.course_id))]
+      const { data: cs } = await supabase
+        .from('courses')
+        .select('id, title, slug')
+        .in('id', ids)
+        .eq('is_active', true)
+        .order('title', { ascending: true })
+      myCourses = cs || []
+    }
+  }
+
   // ===== Soporte/Compras: últimos tickets ABIERTOS/EN PROCESO del usuario =====
   const { data: myTickets } = await supabase
     .from('tickets')
@@ -266,100 +298,142 @@ export default async function DashboardPage() {
           </div>
 
           {/* Contenidos / Accesos (solo si enabled) */}
-            {ultimateEnabled && (
-              <div className="space-y-5">
-                {/* 0) Horario de clases (9–10 am Bogotá) */}
-                <ClassScheduleCard
-                  initialCountryCode={countryCode}
-                  classDaysLabel="Lunes, Miércoles, Viernes y Sábados"
-                  baseTZ="America/Bogota"
-                  startH={9}
-                  startM={0}
-                  endH={10}
-                  endM={0}
-                />
+          {ultimateEnabled && (
+            <div className="space-y-5">
+              {/* 0) Horario de clases (9–10 am Bogotá) */}
+              <ClassScheduleCard
+                initialCountryCode={countryCode}
+                classDaysLabel="Lunes, Miércoles, Viernes y Sábados"
+                baseTZ="America/Bogota"
+                startH={9}
+                startM={0}
+                endH={10}
+                endM={0}
+              />
 
-                {/* 1 & 2) Preflop + Classroom en dos columnas */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Rangos Preflop */}
-                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
-                    <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
-                      RANGOS PREFLOP
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={PREFLOP_LATEST_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-lg bg-white/5 text-white px-4 py-2 border border-white/15 hover:bg-white/10 transition text-sm"
-                      >
-                        Descargar Tablas Preflop (última versión)
-                      </a>
-                      <PreflopVideoButton
-                        iframeSrc={BUNNY_IFRAME_SRC}
-                        buttonLabel="Video explicativo"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Ingreso Classroom */}
-                  <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
-                    <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
-                      GOOGLE CLASSROOM
-                    </h3>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <a
-                        href={CLASSROOM_URL}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition shadow-glow"
-                      >
-                        Ingreso al Classroom
-                      </a>
-
-                      {/* Ayuda (popover nativo) */}
-                      <button
-                        type="button"
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-sm text-white/80 hover:bg-white/10"
-                        aria-label="Ayuda Classroom"
-                        popovertarget="classroom-help"
-                        popovertargetaction="toggle"
-                        title="Ayuda"
-                      >
-                        ?
-                      </button>
-
-                      <div
-                        id="classroom-help"
-                        popover="manual"
-                        className="max-w-xs rounded-lg border border-white/10 bg-neutral-900/95 p-3 shadow-xl backdrop-blur"
-                      >
-                        <p className="text-sm leading-relaxed text-white/90">Para acceder al Classroom:</p>
-                        <ul className="mt-2 list-disc pl-5 text-sm text-white/80 space-y-1">
-                          <li>Acepta la invitación que llega a tu correo electrónico.</li>
-                          <li>Revisa también la carpeta <b>Spam</b>.</li>
-                          <li>Tu membresía debe estar <b>activa</b>.</li>
-                          <li>¿No llegó el correo? Contacta con <b>soporte</b> para reenvío.</li>
-                        </ul>
-                        <div className="mt-3 text-right">
-                          <button
-                            className="text-xs px-3 py-1.5 rounded bg-red-600/90 hover:bg-red-500 text-white transition"
-                            popovertarget="classroom-help"
-                            popovertargetaction="hide"
-                          >
-                            Cerrar
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <p className="mt-2 text-xs text-white/70">
-                      Accede a las clases, anuncios y más.
-                    </p>
+              {/* 1 & 2) Preflop + Classroom en dos columnas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Rangos Preflop */}
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
+                  <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
+                    RANGOS PREFLOP
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={PREFLOP_LATEST_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg bg-white/5 text-white px-4 py-2 border border-white/15 hover:bg-white/10 transition text-sm"
+                    >
+                      Descargar Tablas Preflop (última versión)
+                    </a>
+                    <PreflopVideoButton
+                      iframeSrc={BUNNY_IFRAME_SRC}
+                      buttonLabel="Video explicativo"
+                    />
                   </div>
                 </div>
+
+                {/* Ingreso Classroom */}
+                <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4 h-full">
+                  <h3 className="text-sm font-semibold mb-2 tracking-wide text-white/90 flex items-center gap-2">
+                    GOOGLE CLASSROOM
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={CLASSROOM_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center rounded-lg bg-brand text-white px-4 py-2 hover:bg-brand/90 transition shadow-glow"
+                    >
+                      Ingreso al Classroom
+                    </a>
+
+                    {/* Ayuda (popover nativo) */}
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 text-sm text-white/80 hover:bg-white/10"
+                      aria-label="Ayuda Classroom"
+                      popovertarget="classroom-help"
+                      popovertargetaction="toggle"
+                      title="Ayuda"
+                    >
+                      ?
+                    </button>
+
+                    <div
+                      id="classroom-help"
+                      popover="manual"
+                      className="max-w-xs rounded-lg border border-white/10 bg-neutral-900/95 p-3 shadow-xl backdrop-blur"
+                    >
+                      <p className="text-sm leading-relaxed text-white/90">Para acceder al Classroom:</p>
+                      <ul className="mt-2 list-disc pl-5 text-sm text-white/80 space-y-1">
+                        <li>Acepta la invitación que llega a tu correo electrónico.</li>
+                        <li>Revisa también la carpeta <b>Spam</b>.</li>
+                        <li>Tu membresía debe estar <b>activa</b>.</li>
+                        <li>¿No llegó el correo? Contacta con <b>soporte</b> para reenvío.</li>
+                      </ul>
+                      <div className="mt-3 text-right">
+                        <button
+                          className="text-xs px-3 py-1.5 rounded bg-red-600/90 hover:bg-red-500 text-white transition"
+                          popovertarget="classroom-help"
+                          popovertargetaction="hide"
+                        >
+                          Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="mt-2 text-xs text-white/70">
+                    Accede a las clases, anuncios y más.
+                  </p>
+                </div>
               </div>
-            )}
+            </div>
+          )}
+        </section>
+
+        {/* Mis cursos */}
+        <section className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/5">🎓</span>
+              <h2 className="text-lg font-semibold">Mis cursos</h2>
+            </div>
+            <Link
+              href="/courses"
+              className="inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10"
+            >
+              Ver catálogo →
+            </Link>
+          </div>
+
+          {myCourses.length === 0 ? (
+            <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-sm text-white/80">
+                No tienes cursos disponibles.{' '}
+                <Link href="/courses" className="underline">Revisa nuestros cursos</Link>
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {myCourses.map(c => (
+                <div key={c.id} className="rounded-xl border border-white/10 bg-white/[0.04] p-4 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-white/90 truncate">{c.title}</div>
+                    <div className="text-xs text-white/60">/courses/{c.slug}</div>
+                  </div>
+                  <Link
+                    href={`/courses/${c.slug}`}
+                    className="rounded-lg bg-brand text-white px-3 py-1.5 text-sm hover:bg-brand/90 transition shadow-glow shrink-0"
+                  >
+                    Acceder
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Tickets abiertos del usuario (Soporte/Compras) */}
