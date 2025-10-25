@@ -111,6 +111,32 @@ export default async function AdminPage() {
               </Link>
             </div>
           </div>
+
+          {/* Cursos (NUEVO) */}
+          <div className="rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md p-5 sm:p-6 flex flex-col">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold">Cursos</h2>
+              <p className="mt-1 text-sm text-white/70">
+                Gestiona cursos individuales y paquetes de cursos (inscripciones y duraciones).
+              </p>
+            </div>
+            <div className="mt-4 flex gap-2">
+              <Link
+                href="/admin/courses"
+                prefetch={false}
+                className="inline-flex items-center justify-center rounded-lg bg-brand px-4 py-2 text-white hover:bg-brand/90 shadow-glow"
+              >
+                Gestionar cursos
+              </Link>
+              <Link
+                href="/admin/course-packages"
+                prefetch={false}
+                className="inline-flex items-center justify-center rounded-lg bg-white/10 px-4 py-2 text-white hover:bg-white/15"
+              >
+                Paquetes
+              </Link>
+            </div>
+          </div>
         </section>
       </div>
     </main>
